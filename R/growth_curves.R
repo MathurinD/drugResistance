@@ -26,7 +26,13 @@ process_growth_curve <- function(experiment, keep_controls=FALSE) {
                     }) %>%
             bind_rows()
 
-    norm_values = controls %>% apply(1, function(xx) {well_agg %>% filter(Ref_T==xx["Treatment"]) %>% mutate(Viability=Mean_well/as.numeric(xx["Mean"]), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>% bind_rows() %>% mutate(Concentration_value=concentration_values(Concentration)) %>% return()
+    norm_values = controls %>% apply(1, function(xx) {well_agg %>% filter(Ref_T==xx["Treatment"]) %>% mutate(Viability=Mean_well/as.numeric(xx["Mean"]), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>% bind_rows() %>% mutate(Concentration_value=concentration_values(Concentration))
+    
+    if (keep_controls) {
+        return(norm_values)
+    } else {
+        norm_values  %>% filter(!grepl("DMSO|medium|cells", Treatment)) %>% return()
+    }
 }
 
 #' Process one growth curve to a viability value

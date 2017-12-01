@@ -17,7 +17,7 @@ concentration_values = function(concentrations) {
 #' The sigmoid function: a / (1 + exp(-b*(x-c)))
 #' @param params A vector of size 2 for the 'b' and 'c' parameters
 #' @param xx A vector of numerals to which the function should be applied
-#' @value A vector of numerals
+#' @return A vector of numerals
 #' @export
 sigmoid <- function(params, xx) {
   return( 1 / (1 + exp(-params[1] * (xx - params[2]))) )
