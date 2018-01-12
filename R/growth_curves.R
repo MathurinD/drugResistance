@@ -1,4 +1,9 @@
-#' Process growth curves to viability values
+############################## growth_curves.R #############################################
+#' @import propagate
+#' @import tidyverse
+#' @import cowplot
+
+#' @title Process growth curves to viability values
 #'
 #' Extract growth rate, normalise and averages growth curves from the experiment
 #' @param experiment Dataset as return by read_incu from incucyter
@@ -50,4 +55,37 @@ process_single_growth_curve <- function(trace) {
         growth_rate = (trace$Value[stop]-trace$Value[1]) / (trace$Elapsed[stop]-trace$Elapsed[1])
     }
     return( trace[1,] %>% mutate(Value=growth_rate, Elapsed=NULL, Date_Time=NULL, Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) )
+}
+
+#' Fit sigmoid to drug sensitivities
+#'
+#' @export
+fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "cell")) {
+    pexp = pexp %>% filter(!grepl( paste0(controls, collapse="|"), Treatment ))
+
+    treatment_plots = list()
+    fits_treatment = list()
+    for (tt in distinct(pexp, Inhibitor)$Inhibitor) {
+        t_data = pexp %>% filter(Inhibitor == tt)
+        # Equidistant points in log space
+        crange=log(range(t_data$Concentration_value))
+        xx = exp(seq(crange[1], crange[2], length.out=100))
+        dumx=tibble(xx=xx)
+
+        fits_treatment[[tt]] = fit_sigmoid(t_data)
+        tryCatch({
+            suppressMessages({ ipred = predictNLS(fits_treatment[[tt]]$model, t_data[,"Concentration_value"])$summary })
+            .GlobalEnv$t_data = t_data %>% mutate(Vmin=ipred$"Prop.2.5%", Vmax=ipred$"Prop.97.5%")
+            }, error = function(e){
+            .GlobalEnv$t_data = t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
+        })
+        new_plot = t_data %>% ggplot() + scale_x_log10() +
+                geom_point(aes(Concentration_value, Viability)) +
+                geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
+                geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
+                ggtitle(tt)
+        print(new_plot)
+        treatment_plots[[tt]] = new_plot
+    }
+    return(list(fits=fits_treatment, plots=treatment_plots))
 }

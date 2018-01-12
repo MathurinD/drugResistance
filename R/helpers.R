@@ -1,3 +1,4 @@
+############################## helpers.R ###################################################
 #' Convert readable concentration format to numerals
 #'
 #' Convert from the readable "XX[pnµm]M" format to a numeral M format
@@ -36,9 +37,10 @@ fit_sigmoid <- function(fit_data) {
     try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - cc)*bb)), start=list(bb=-0.03, cc=-6), data=fit_data) }, silent=TRUE)
     try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - cc)*bb)), start=list(bb=-0.1, cc=-6), data=fit_data) }, silent=TRUE)
     if (length(fits) > 0) {
-        fits = sapply(fits, function(ff) { c(coef(ff), residual=sum(resid(ff)^2)) })
-        return(fits[c("bb", "cc"), order(fits["residual",])[1]])
+        fits = lapply(fits, function(ff) { list(coef=coef(ff), residual=sum(resid(ff)^2), model=ff) })
+        bfid = order(sapply(fits, function(ff) { ff$residual }))[1]
+        return( fits[[bfid]] )
     } else {
-        return(c(-0.01, 0, NaN))
+        return(list(coef=c(-0.01, 0), residual=NaN, conf=matrix(c(-10, -10, 10, 10), nrow=2), model=NULL))
     }
 }
