@@ -11,7 +11,7 @@
 #' @return A tibble with new columns Inhibitor, Concentration and Viability
 #' @export
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
-process_growth_curve <- function(experiment, keep_controls=FALSE) {
+process_growth_curve <- function(experiment, keep_controls=TRUE) {
     well_agg = experiment %>% distinct(Analysis_Job, Well, img) %>%
         apply(1, function(x){ experiment %>%
                             filter(Analysis_Job==x["Analysis_Job"], Well==x["Well"], img==x["img"]) %>%
@@ -61,28 +61,32 @@ process_single_growth_curve <- function(trace) {
 #'
 #' @export
 fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "cell")) {
+    pcontrol = pexp %>% filter(grepl( paste0(controls, collapse="|"), Treatment ))
     pexp = pexp %>% filter(!grepl( paste0(controls, collapse="|"), Treatment ))
 
     treatment_plots = list()
     fits_treatment = list()
     for (tt in distinct(pexp, Inhibitor)$Inhibitor) {
         t_data = pexp %>% filter(Inhibitor == tt)
+        t_control = pcontrol %>% filter(Analysis_Job %in% pexp$Analysis_Job, Treatment %in% pexp$Ref_T)
+        t_control = t_control %>% mutate( Concentration_value = apply(t_control, 1, function(XX){ median(pexp %>% filter(Ref_T == XX["Treatment"]) %>% .$Concentration_value) }) )
         # Equidistant points in log space
         crange=log(range(t_data$Concentration_value))
         xx = exp(seq(crange[1], crange[2], length.out=100))
         dumx=tibble(xx=xx)
 
         fits_treatment[[tt]] = fit_sigmoid(t_data)
-        tryCatch({
+        t_data = tryCatch({
             suppressMessages({ ipred = predictNLS(fits_treatment[[tt]]$model, t_data[,"Concentration_value"])$summary })
-            .GlobalEnv$t_data = t_data %>% mutate(Vmin=ipred$"Prop.2.5%", Vmax=ipred$"Prop.97.5%")
+            t_data %>% mutate(Vmin=ipred$"Prop.2.5%", Vmax=ipred$"Prop.97.5%")
             }, error = function(e){
-            .GlobalEnv$t_data = t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
+            t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
         })
         new_plot = t_data %>% ggplot() + scale_x_log10() +
                 geom_point(aes(Concentration_value, Viability)) +
-                geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
                 geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
+                geom_point(aes(Concentration_value, Viability, color="red", alpha=0.5), show.legend=FALSE, data=t_control) +
+                geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
                 ggtitle(tt)
         print(new_plot)
         treatment_plots[[tt]] = new_plot
