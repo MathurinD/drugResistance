@@ -79,7 +79,7 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         t_data = tryCatch({
             suppressMessages({ ipred = predictNLS(fits_treatment[[tt]]$model, t_data[,"Concentration_value"])$summary })
             t_data %>% mutate(Vmin=ipred$"Prop.2.5%", Vmax=ipred$"Prop.97.5%")
-            }, error = function(e){
+        }, error = function(e){
             t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
         })
         new_plot = t_data %>% ggplot() + scale_x_log10() +
@@ -91,5 +91,7 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         print(new_plot)
         treatment_plots[[tt]] = new_plot
     }
-    return(list(fits=fits_treatment, plots=treatment_plots))
+    control_plot = pcontrol %>% filter(grepl(paste0("DMSO"), Treatment)) %>% ggplot(aes(Concentration_value, Mean_well, color=Analysis_Job)) + geom_point() + scale_x_log10() + ggtitle("Controls growth rates")
+    print(control_plot)
+    return(list(fits=fits_treatment, plots=treatment_plots, controls=control_plot))
 }
