@@ -12,7 +12,8 @@
 #' @export
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE) {
-    well_agg = experiment %>% distinct(Analysis_Job, Well, img) %>%
+    well_agg = experiment %>% filter(Value > 1) %>% # Remove drops due to lack of focus or other technical artefacts
+        distinct(Analysis_Job, Well, img) %>%
         apply(1, function(x){ experiment %>%
                             filter(Analysis_Job==x["Analysis_Job"], Well==x["Well"], img==x["img"]) %>%
                             process_single_growth_curve()
@@ -66,6 +67,8 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
 
     treatment_plots = list()
     fits_treatment = list()
+    log_breaks = 10^-seq(1:10)
+    log_breaks = c(log_breaks, 3*log_breaks)
     for (tt in distinct(pexp, Inhibitor)$Inhibitor) {
         t_data = pexp %>% filter(Inhibitor == tt)
         t_control = pcontrol %>% filter(Analysis_Job %in% pexp$Analysis_Job, Treatment %in% pexp$Ref_T)
@@ -82,7 +85,7 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         }, error = function(e){
             t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
         })
-        new_plot = t_data %>% ggplot() + scale_x_log10() +
+        new_plot = t_data %>% ggplot() + scale_x_log10(breaks=log_breaks) +
                 geom_point(aes(Concentration_value, Viability)) +
                 geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
                 geom_point(aes(Concentration_value, Viability, color="red", alpha=0.5), show.legend=FALSE, data=t_control) +
@@ -91,7 +94,7 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         print(new_plot)
         treatment_plots[[tt]] = new_plot
     }
-    control_plot = pcontrol %>% filter(grepl(paste0("DMSO"), Treatment)) %>% ggplot(aes(Concentration_value, Mean_well, color=Analysis_Job)) + geom_point() + scale_x_log10() + ggtitle("Controls growth rates")
+    control_plot = pcontrol %>% filter(grepl(paste0("DMSO"), Treatment)) %>% mutate(Concentration_value=1/Concentration_value) %>% ggplot(aes(Concentration_value, Mean_well, color=Analysis_Job)) + geom_point() + scale_x_log10(breaks=log_breaks) + xlab("Carrier dilution") + ggtitle("Controls growth rates")
     print(control_plot)
     return(list(fits=fits_treatment, plots=treatment_plots, controls=control_plot))
 }
