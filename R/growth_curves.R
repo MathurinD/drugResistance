@@ -45,15 +45,16 @@ process_growth_curve <- function(experiment, keep_controls=TRUE) {
 #'
 #' Process one growth curve to a viability value
 #' @param trace A tibble with columns Elapsed for the time and Value for the confluency at those times
+#' @param max_confluency Value above which the confluency is not growing exponentially anymore
 #' @return A one line tibble with the same columns where value is now the growth rate
 #' @export
-process_single_growth_curve <- function(trace) {
-    if (max(trace$Value) < 95) {
-        growth_rate = (trace %>% filter(Elapsed==max(Elapsed)) %>% .$Value - trace %>% filter(Elapsed==min(Elapsed)) %>% .$Value) / (max(trace$Elapsed)-min(trace$Elapsed))
+process_single_growth_curve <- function(trace, max_confluency=75) {
+    if (max(trace$Value) < max_confluency) {
+        growth_rate = log(trace %>% filter(Elapsed==max(Elapsed)) %>% .$Value / trace %>% filter(Elapsed==min(Elapsed)) %>% .$Value) * log(2) / (max(trace$Elapsed)-min(trace$Elapsed))
     } else {
         stop = 10 # Arbitrary value, should depend on the sampling interval (estimation of the time it takes the cell to gain 5% confluence
-        while (mean(trace$Value[(stop-9):stop]) < 95 & stop < length(trace$Value)) { stop = stop + 1 }
-        growth_rate = (trace$Value[stop]-trace$Value[1]) / (trace$Elapsed[stop]-trace$Elapsed[1])
+        while (mean(trace$Value[(stop-9):stop]) < max_confluency & stop < length(trace$Value)) { stop = stop + 1 }
+        growth_rate = log(trace$Value[stop]/trace$Value[1]) * log(2) / (trace$Elapsed[stop]-trace$Elapsed[1])
     }
     return( trace[1,] %>% mutate(Value=growth_rate, Elapsed=NULL, Date_Time=NULL, Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) )
 }
