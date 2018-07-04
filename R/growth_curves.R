@@ -85,10 +85,11 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         }, error = function(e){
             t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
         })
+        t_data = t_data %>% mutate(Vmin = sapply(Vmin, max, -1, na.rm=TRUE), Vmax = sapply(Vmax, min, 1.5, na.rm=TRUE)) # Prevent the confidence interval from blowing the limits of the y-axis
         new_plot = t_data %>% ggplot() + scale_x_log10(breaks=log_breaks) +
-                geom_point(aes(Concentration_value, Viability)) +
+                geom_point(aes( Concentration_value, Viability, col=substr(Well, 1, 1), shape=substr(Well, 2, 2) )) +
                 geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
-                geom_point(aes(Concentration_value, Viability, color="red", alpha=0.5), show.legend=FALSE, data=t_control) +
+                geom_point(aes(Concentration_value, Viability, color="controls", alpha=0.5), show.legend=FALSE, data=t_control) +
                 geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
                 ggtitle(tt)
         print(new_plot)
