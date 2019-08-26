@@ -13,5 +13,5 @@ concentration_values(concentrations)
 A numeric vector corresponding to the converted values
 }
 \description{
-Convert from the readable "XX[pnµm]M" format to a numeral M format
+Convert from the readable "XX[pnum]M" format to a numeral M format
 }

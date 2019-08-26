@@ -4,10 +4,12 @@
 \alias{process_single_growth_curve}
 \title{Process one growth curve to a viability value}
 \usage{
-process_single_growth_curve(trace)
+process_single_growth_curve(trace, max_confluency = 75)
 }
 \arguments{
 \item{trace}{A tibble with columns Elapsed for the time and Value for the confluency at those times}
+
+\item{max_confluency}{Value above which the confluency is not growing exponentially anymore}
 }
 \value{
 A one line tibble with the same columns where value is now the growth rate

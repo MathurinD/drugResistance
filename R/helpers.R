@@ -1,12 +1,13 @@
 ############################## helpers.R ###################################################
+
 #' Convert readable concentration format to numerals
 #'
-#' Convert from the readable "XX[pnµm]M" format to a numeral M format
+#' Convert from the readable "XX[pnum]M" format to a numeral M format
 #' @param concentrations A vector of readable concentrations
 #' @return A numeric vector corresponding to the converted values
 #' @export
-# NOTE: does not manage non valid formats correctly
 concentration_values = function(concentrations) {
+    # NOTE: does not manage non valid formats correctly
     scaling = list("nM"=1e-9, "uM"=1e-6, "mM"=1e-3, "k"=1e3, "M"=1e6)
     numbers = gsub("[^0-9.]*", "", concentrations)
     modifiers = gsub("[0-9.]*", "", concentrations)
@@ -29,11 +30,12 @@ sigmoid <- function(params, xx) {
 #' Helper function to fit a sigmoid with a=1 to data using the LM algorithm
 #' @param fit_data A tibble or data.frame with columns 'Concentration_value' and 'Viability' corresponding defining the points to fit
 #' @return A vector of size 3 corresponding to parameters b and c, and the residual of the fit
-#' @export
 #' @seealso sigmoid
+#' @export
 fit_sigmoid <- function(fit_data) {
     fits = list()
-    # IC50s tend to be between 1 and 100 µM
+    fit_data = fit_data %>% mutate(Viability = sapply(Viability, max, -0.1, na.rm=TRUE)) # Threshold negative viability for the fit as it seems to ruin it
+    # IC50s tend to be between 1 and 100 uM
     try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.01, ic50=-6), data=fit_data) }, silent=TRUE)
     try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.03, ic50=-6), data=fit_data) }, silent=TRUE)
     try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.1, ic50=-6), data=fit_data) }, silent=TRUE)
