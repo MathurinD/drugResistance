@@ -6,7 +6,8 @@
 
 Extract growth rate, normalise and averages growth curves from the experiment}
 \usage{
-process_growth_curve(experiment, keep_controls = FALSE)
+process_growth_curve(experiment, keep_controls = TRUE,
+  max_confluency = 75)
 }
 \arguments{
 \item{experiment}{Dataset as return by read_incu from incucyter}
@@ -15,4 +16,9 @@ process_growth_curve(experiment, keep_controls = FALSE)
 }
 \value{
 A tibble with new columns Inhibitor, Concentration and Viability
+}
+\description{
+Process growth curves to viability values
+
+Extract growth rate, normalise and averages growth curves from the experiment
 }

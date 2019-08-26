@@ -1,5 +1,6 @@
 ############################## growth_curves.R #############################################
 #' @import propagate
+#' @import minpack.lm
 #' @import tidyverse
 #' @import cowplot
 
@@ -11,18 +12,19 @@
 #' @return A tibble with new columns Inhibitor, Concentration and Viability
 #' @export
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
-process_growth_curve <- function(experiment, keep_controls=TRUE) {
+process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75) {
     well_agg = experiment %>% filter(Value > 1) %>% # Remove drops due to lack of focus or other technical artefacts
         distinct(Analysis_Job, Well, img) %>%
         apply(1, function(x){ experiment %>%
                             filter(Analysis_Job==x["Analysis_Job"], Well==x["Well"], img==x["img"]) %>%
-                            process_single_growth_curve()
+                            process_single_growth_curve(max_confluency)
                         }) %>%
         bind_rows %>%
         group_by(Analysis_Job, Treatment, Reference, Well, Feature, Unit, Metric, Ref_T) %>%
         summarise(Mean_well=mean(Value), Sd_well=sd(Value, na.rm=T)) %>% 
         ungroup()
 
+    control_names = well_agg %>% distinct(Ref_T) %>% as_vector
     controls = well_agg %>%
             distinct(Ref_T) %>%
             as_vector %>% map(function(xx){ well_agg %>%
@@ -31,6 +33,10 @@ process_growth_curve <- function(experiment, keep_controls=TRUE) {
                               summarise(Mean=mean(Mean_well), Sd=sd(Mean_well))
                     }) %>%
             bind_rows()
+    if (nrow(controls) < length(control_names)) {
+        not_found = control_names[!control_names %in% (controls %>% pull(Treatment))]
+        warning(paste("The controls ", paste(not_found, collapse=","), " have not been found, can't normalize all conditions. Check the Treatment name for the controls and that all relevant wells are present"))
+    }
 
     norm_values = controls %>% apply(1, function(xx) {well_agg %>% filter(Ref_T==xx["Treatment"]) %>% mutate(Viability=Mean_well/as.numeric(xx["Mean"]), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>% bind_rows() %>% mutate(Concentration_value=concentration_values(Concentration))
     
@@ -54,7 +60,7 @@ process_single_growth_curve <- function(trace, max_confluency=75) {
     } else {
         stop = 10 # Arbitrary value, should depend on the sampling interval (estimation of the time it takes the cell to gain 5% confluence
         while (mean(trace$Value[(stop-9):stop]) < max_confluency & stop < length(trace$Value)) { stop = stop + 1 }
-        growth_rate = log(trace$Value[stop]/trace$Value[1]) * log(2) / (trace$Elapsed[stop]-trace$Elapsed[1])
+        growth_rate = log(trace$Value[stop]/trace$Value[1], 2) / (trace$Elapsed[stop]-trace$Elapsed[1])
     }
     return( trace[1,] %>% mutate(Value=growth_rate, Elapsed=NULL, Date_Time=NULL, Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) )
 }
@@ -76,6 +82,9 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         t_control = t_control %>% mutate( Concentration_value = apply(t_control, 1, function(XX){ median(pexp %>% filter(Ref_T == XX["Treatment"]) %>% .$Concentration_value) }) )
         # Equidistant points in log space
         crange=log(range(t_data$Concentration_value))
+        message(crange)
+        if (is.na(crange[1])) {crange[1]=-17}
+        if (is.na(crange[2])) {crange[2]=-9}
         xx = exp(seq(crange[1], crange[2], length.out=100))
         dumx=tibble(xx=xx)
 
