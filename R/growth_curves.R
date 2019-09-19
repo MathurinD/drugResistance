@@ -109,3 +109,32 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
     print(control_plot)
     return(list(fits=fits_treatment, plots=treatment_plots, controls=control_plot))
 }
+
+#' Compute the slope of the confluency in a window
+#'
+#' Compute the slope of the confluency in a window using the max-min approximation. Does the direct sum, considering the values are log-transformed
+#' @param experiment An experiment tibble as returned by process_growth_curve
+#' @param winsize The half-size of the window in time units
+#' @param do_plot Boolean whether the slopes microplate should be plotted
+#' @return Invisibly the experiment tibble without the first 'winsize' data points and an extra column 'Slope'.
+#' @export
+compute_window_slope <- function(experiment, winsize=20, do_plot=TRUE) {
+    experiment %>%
+        filter(Elapsed>winsize) %>%
+        group_by(Well, img, Elapsed) %>%
+        mutate(Slope=NA) %>%
+        group_map(function(.x, .y){
+            time = as.numeric(.y$Elapsed)
+            experiment %>% filter(Elapsed > time-winsize & Elapsed < time+winsize) -> tmp
+            max_time = max(tmp$Elapsed)
+            min_time = min(tmp$Elapsed)
+            .x$Slope = ((experiment %>% filter(img==.y$img, Well==.y$Well, Elapsed==max_time) %>% pull(Value))-(experiment %>% filter(img==.y$img, Well==.y$Well, Elapsed==min_time) %>% pull(Value)))/(max_time-min_time)
+            return(bind_cols(.y, .x)) }) %>%
+        bind_rows -> with_slope
+    if (do_plot) {
+        plot(with_slope %>% mutate(Value=Slope) %>% plot_microplate(plot_name=paste("Windowed slope (", winsize, ")", sep=" ")))
+    }
+
+    invisible(with_slope)
+}
+
