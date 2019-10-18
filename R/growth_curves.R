@@ -14,11 +14,15 @@
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75) {
     well_agg = experiment %>% filter(Value > 1) %>% # Remove drops due to lack of focus or other technical artefacts
-        distinct(Analysis_Job, Well, img) %>%
-        apply(1, function(x){ experiment %>%
-                            filter(Analysis_Job==x["Analysis_Job"], Well==x["Well"], img==x["img"]) %>%
-                            process_single_growth_curve(max_confluency)
-                        }) %>%
+        filter(Value < max_confluency) %>%
+        mutate(Value=log(Value)) %>% # Linear in log space
+        group_by(Analysis_Job, Well, img, Description, Treatment, Ref_T, Reference, Metric) %>%
+        group_map(function(.x, .y) { .y %>% mutate(Value=lm(Value~1+Elapsed, .x)$coefficients["Elapsed"], Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>%
+       # distinct(Analysis_Job, Well, img) %>%
+       # apply(1, function(x){ experiment %>%
+       #                     filter(Analysis_Job==x["Analysis_Job"], Well==x["Well"], img==x["img"]) %>%
+       #                     process_single_growth_curve(max_confluency)
+       #                 }) %>%
         bind_rows %>%
         group_by(Analysis_Job, Treatment, Reference, Well, Feature, Unit, Metric, Ref_T) %>%
         summarise(Mean_well=mean(Value), Sd_well=sd(Value, na.rm=T)) %>% 
