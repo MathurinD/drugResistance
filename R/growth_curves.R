@@ -14,7 +14,7 @@
 #' @export
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75) {
-    well_agg = experiment %>% filter(Value > 1) %>% # Remove drops due to lack of focus or other technical artefacts
+    well_agg = experiment %>% filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
         filter(Value < max_confluency) %>%
         mutate(Value=log(Value)) %>% # Linear in log space
         group_by(Analysis_Job, Well, img, Description, Treatment, Ref_T, Reference, Metric) %>%
