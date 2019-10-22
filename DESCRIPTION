@@ -1,7 +1,7 @@
 Package: drugResistance
 Type: Package
 Title: Process growth curves from drug sensitivity experiments
-Version: 1.0
+Version: 3.0
 Date: 2017-11-30
 Author: Who wrote it
 Maintainer: Mathurin Dorel <mathurin.dorel@charite.de>

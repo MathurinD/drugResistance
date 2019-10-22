@@ -3,6 +3,7 @@
 #' @import minpack.lm
 #' @import tidyverse
 #' @import cowplot
+#' @import ggrepel
 
 #' @title Process growth curves to viability values
 #'
@@ -105,7 +106,17 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
                 geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
                 geom_point(aes(Concentration_value, Viability, color="controls", alpha=0.5), show.legend=FALSE, data=t_control) +
                 geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
+                #geom_line(aes(xx, fit$curve[[1]](xx)), data=dumx) + # If fit=drc::drm(Viability~Concentration_value, data=t_data, fct=drc::LL2.2(names=c("Slope", "log(IC50)")))
+                #geom_line(aes(xx, sigmoid(c(-fit$coefficients["Slope:(Intercept)"], fit$coefficients["log(IC50):(Intercept)"] %>% exp %>% log10), log10(xx))), data=dumx) + # If fit=drc::drm(Viability~Concentration_value, data=t_data, fct=drc::LL2.2(names=c("Slope", "log(IC50)")))
+                #geom_line(aes(xx, sigmoid(c(-confint(fit)["Slope:(Intercept)", "2.5 %"], confint(fit)["log(IC50):(Intercept)", "2.5 %"] %>% exp %>% log10), log10(xx))), data=dumx, col="grey") + geom_line(aes(xx, sigmoid(c(-confint(fit)["Slope:(Intercept)", "97.5 %"], confint(fit)["log(IC50):(Intercept)", "97.5 %"] %>% exp %>% log10), log10(xx))), data=dumx, col="grey") # Confidence intervals
+                coord_cartesian(ylim=c(-0.5, 1.5)) +
                 ggtitle(tt)
+        if (nrow(t_data %>% filter(Viability < -0.5)) > 0) {
+            new_plot = new_plot + geom_text_repel(aes(Concentration_value, -0.5, label=signif(Viability, 2)), data=.%>%filter(Viability < -0.5))
+        }
+        if (nrow(t_data %>% filter(Viability > 1.5)) > 0) {
+            new_plot = new_plot + geom_text_repel(aes(Concentration_value, 1.5, label=signif(Viability, 2)), data=.%>%filter(Viability > 1.5))
+        }
         print(new_plot)
         treatment_plots[[tt]] = new_plot
     }
