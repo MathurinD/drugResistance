@@ -4,8 +4,7 @@
 \alias{fit_drug_sensitivity}
 \title{Fit sigmoid to drug sensitivities}
 \usage{
-fit_drug_sensitivity(pexp, controls = c("DMSO", "control", "medium",
-  "cell"))
+fit_drug_sensitivity(pexp, controls = c("DMSO", "control", "medium", "cell"))
 }
 \description{
 Fit sigmoid to drug sensitivities

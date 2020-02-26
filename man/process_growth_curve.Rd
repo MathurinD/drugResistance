@@ -6,8 +6,7 @@
 
 Extract growth rate, normalise and averages growth curves from the experiment}
 \usage{
-process_growth_curve(experiment, keep_controls = TRUE,
-  max_confluency = 75)
+process_growth_curve(experiment, keep_controls = TRUE, max_confluency = 75)
 }
 \arguments{
 \item{experiment}{Dataset as return by read_incu from incucyter}
