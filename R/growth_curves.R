@@ -106,9 +106,6 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
                 geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
                 geom_point(aes(Concentration_value, Viability, color="controls", alpha=0.5), show.legend=FALSE, data=t_control) +
                 geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
-                #geom_line(aes(xx, fit$curve[[1]](xx)), data=dumx) + # If fit=drc::drm(Viability~Concentration_value, data=t_data, fct=drc::LL2.2(names=c("Slope", "log(IC50)")))
-                #geom_line(aes(xx, sigmoid(c(-fit$coefficients["Slope:(Intercept)"], fit$coefficients["log(IC50):(Intercept)"] %>% exp %>% log10), log10(xx))), data=dumx) + # If fit=drc::drm(Viability~Concentration_value, data=t_data, fct=drc::LL2.2(names=c("Slope", "log(IC50)")))
-                #geom_line(aes(xx, sigmoid(c(-confint(fit)["Slope:(Intercept)", "2.5 %"], confint(fit)["log(IC50):(Intercept)", "2.5 %"] %>% exp %>% log10), log10(xx))), data=dumx, col="grey") + geom_line(aes(xx, sigmoid(c(-confint(fit)["Slope:(Intercept)", "97.5 %"], confint(fit)["log(IC50):(Intercept)", "97.5 %"] %>% exp %>% log10), log10(xx))), data=dumx, col="grey") # Confidence intervals
                 coord_cartesian(ylim=c(-0.5, 1.5)) +
                 ggtitle(tt)
         if (nrow(t_data %>% filter(Viability < -0.5)) > 0) {
@@ -153,3 +150,12 @@ compute_window_slope <- function(experiment, winsize=20, do_plot=TRUE) {
     invisible(with_slope)
 }
 
+#' Plot processed growth rates
+#'
+#' Plot a heatmap of the mean growth rate in each well of a plate.
+#' @param pgc A tibble as outputed by process_growth_curve
+#' @export
+plot_growth_rates <- function(pgc) {
+     pgc %>% separate(Well, into=c("Y", "X"), sep=1) %>%
+         ggplot(aes(X, Y, fill=Viability, label=signif(Viability, 3))) + geom_tile() + geom_text() + facet_wrap(~Analysis_Job)
+}
