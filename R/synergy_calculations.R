@@ -54,3 +54,75 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
     return(NA)
 }
 
+#' Helper to get bliss score matrix
+#'
+#' Helper to get a nice bliss score matrix from processed data
+#' @pdata Proccessed incucyte data as outputed by process_growth_curves
+#' @export
+bliss_score <- function(pdata, restrict=TRUE) {
+    pdata %>% get_synergy_table(restrict=restrict) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% ReshapeData -> drm
+    drm %>% .$dose.response.mats %>% .[[1]] -> shaped_data
+    Bliss(shaped_data) -> synergy # From synergyFinder
+    Bliss(shaped_data) -> drm$synergy # From synergyFinder
+   # azd = shaped_data[1,]/100
+   # aew = shaped_data[,1]/100
+   # matrix(rep(azd, length(aew)), nrow=length(aew), byrow=TRUE) + matrix(rep(aew, length(azd)), ncol=length(azd)) - t(t(aew)) %*% t(azd) -> ybliss
+    #return(synergy)
+    return(drm)
+}
+
+#' Plot starHeatmaps for a group of synergy data
+#' @param pdata Processed data
+#' @export
+plot_bliss_scores <- function(pdata) {
+    if (class(pdata) != "list") {
+        pdata = list("all"=pdata)
+    }
+    hl = c()
+    for (pp in names(pdata)) {
+        bss = bliss_score(pdata[[pp]])
+        hl = hl + starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=bss$drug.pairs$drug.col, row_title=bss$drug.pairs$drug.row)
+    }
+    draw(hl, padding = unit(c(2, 2, 10, 2), "mm"))
+    lapply(names(pdata), function(nn) { decorate_heatmap_body(nn, { grid.text(nn, y = unit(1, "npc") + unit(2, "mm"), just = "bottom") }) }) -> null
+}
+
+#' Heatmap with stars for extra data
+#'
+#' Plot heatmap with stars in the tile to encode for another data (significance, effect size, etc)
+#' @param hm_values Values for the colors of the heatmap tiles
+#' @param data Values for the text (or number of stars) of the heatmap tiles
+#' @param encoding One of c('size', 'count', 'multi_count') for whether the value in data should be encoded by the size of one star or a number of stars on one or multiple lines
+#' @export
+starHeatmap2 <- function(hm_values, data, encoding="size", ...) {
+    data = data %>% .[nrow(.):-1:1,,drop=FALSE]
+    if (encoding == 'size') {
+        #draw(
+             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(data[i,j] > 10) { grid.text("*", x, y-unit(0.2, "lines"), gp=gpar(fontsize=10*floor(data[i,j]/10))) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
+#, annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch="*", legend_gp=gpar(fontsize=10*1:5), type="points", background="white", grid_height=unit(2, "lines"))) )
+    } else if (encoding == 'multi_count') {
+        hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(data[i,j] > 10) { grid.text(paste0(rep("*", floor(data[i,j]/10)), collapse=""), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
+    } else if (encoding == 'count') {
+        draw(
+             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(data[i,j] > 10) { grid.text(gsub("(.{3})", "\\1\n", paste0(rep("*", floor(data[i,j]/10)), collapse="")), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
+             annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch=1:5 %>% sapply(function(nn){paste0(rep("*", nn), collapse="")}), type="points"))
+             )
+    }
+}
+
+#' Helper for starHeatmap2 with hm_values = data
+#' @export
+starHeatmap <- function(data, ...) {
+    starHeatmap2(data, data, ...)
+}
+
+#' Heatmap with values in the tiles
+#'
+#' @export
+#' @param hm_values Values for the heatmap colors
+#' @param data Values for the heatmap text
+valueHeatmap2 <- function(hm_values, data, ...) {
+    data = data %>% .[nrow(.):-1:1,,drop=FALSE]
+    hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(signif(data[i,j], 2), x, y, gp=gpar(fontsize=10)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
+}
+
