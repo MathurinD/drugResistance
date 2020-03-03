@@ -98,13 +98,13 @@ starHeatmap2 <- function(hm_values, data, encoding="size", ...) {
     data = data %>% .[nrow(.):-1:1,,drop=FALSE]
     if (encoding == 'size') {
         #draw(
-             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(data[i,j] > 10) { grid.text("*", x, y-unit(0.2, "lines"), gp=gpar(fontsize=10*floor(data[i,j]/10))) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
+             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text("*", x, y-unit(0.2, "lines"), gp=gpar(fontsize=10*floor(data[i,j]/10))) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
 #, annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch="*", legend_gp=gpar(fontsize=10*1:5), type="points", background="white", grid_height=unit(2, "lines"))) )
     } else if (encoding == 'multi_count') {
-        hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(data[i,j] > 10) { grid.text(paste0(rep("*", floor(data[i,j]/10)), collapse=""), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
+        hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(paste0(rep("*", floor(data[i,j]/10)), collapse=""), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
     } else if (encoding == 'count') {
         draw(
-             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(data[i,j] > 10) { grid.text(gsub("(.{3})", "\\1\n", paste0(rep("*", floor(data[i,j]/10)), collapse="")), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
+             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(gsub("(.{3})", "\\1\n", paste0(rep("*", floor(data[i,j]/10)), collapse="")), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
              annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch=1:5 %>% sapply(function(nn){paste0(rep("*", nn), collapse="")}), type="points"))
              )
     }
@@ -118,9 +118,9 @@ starHeatmap <- function(data, ...) {
 
 #' Heatmap with values in the tiles
 #'
-#' @export
 #' @param hm_values Values for the heatmap colors
 #' @param data Values for the heatmap text
+#' @export
 valueHeatmap2 <- function(hm_values, data, ...) {
     data = data %>% .[nrow(.):-1:1,,drop=FALSE]
     hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(signif(data[i,j], 2), x, y, gp=gpar(fontsize=10)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
