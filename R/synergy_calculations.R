@@ -21,8 +21,8 @@ get_synergy_table <- function(pdata, restrict=FALSE) {
     treatments = str_split_fixed(pdata$Treatment, "\\+", 2) %>% as_tibble %>% rename(Drug1=V1, Drug2=V2) %>% separate(Drug1, c("DrugRow", "ConcRow"), "_") %>% separate(Drug2, c("DrugCol", "ConcCol"), "_")
     drugs_col = treatments %>% distinct(DrugCol) %>% pull(DrugCol)
     drugs_row = treatments %>% distinct(DrugRow) %>% pull(DrugRow)
-    row_drug = find_first_drug(drugs_row, "DMSO")
-    col_drug = find_first_drug(drugs_col, c(row_drug, "DMSO"))
+    col_drug = find_first_drug(drugs_col, "DMSO")
+    row_drug = find_first_drug(drugs_row, c(col_drug, "DMSO"))
     treatments %>% apply(1, function(x){
                             if(x["DrugRow"] == "DMSO") {
                                  x[c("DrugRow", "ConcRow")]=c("", NA)
@@ -53,3 +53,4 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
     }
     return(NA)
 }
+
