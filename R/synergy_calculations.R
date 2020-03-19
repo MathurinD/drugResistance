@@ -110,6 +110,8 @@ starHeatmap2 <- function(hm_values, data, encoding="size", ...) {
     }
 }
 
+#' Plot heatmap with values as stars
+#'
 #' Helper for starHeatmap2 with hm_values = data
 #' @export
 starHeatmap <- function(data, ...) {

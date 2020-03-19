@@ -29,19 +29,27 @@ sigmoid <- function(params, xx) {
 #'
 #' Helper function to fit a sigmoid with a=1 to data using the LM algorithm
 #' @param fit_data A tibble or data.frame with columns 'Concentration_value' and 'Viability' corresponding defining the points to fit
+#' @param slopes Initial values to start the fit of slopes
+#' @param ic50s Initial values to start the fit of ic50s
 #' @return A vector of size 3 corresponding to parameters b and c, and the residual of the fit
 #' @seealso sigmoid
 #' @export
-fit_sigmoid <- function(fit_data) {
-    fits = list()
+fit_sigmoid <- function(fit_data, slopes=c(-0.01, -0.03, -0.1), ic50s=c(-4, -5, -6)) {
     fit_data = fit_data %>% mutate(Viability = sapply(Viability, max, -0.1, na.rm=TRUE)) # Threshold negative viability for the fit as it seems to ruin it
-    # IC50s tend to be between 1 and 100 uM
-    try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.01, ic50=-6), data=fit_data) }, silent=TRUE)
-    try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.03, ic50=-6), data=fit_data) }, silent=TRUE)
-    try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.1, ic50=-6), data=fit_data) }, silent=TRUE)
-    try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.1, ic50=-4), data=fit_data) }, silent=TRUE)
-    try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.03, ic50=-4), data=fit_data) }, silent=TRUE)
-    try({ fits[[length(fits)+1]] = nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=-0.01, ic50=-4), data=fit_data) }, silent=TRUE)
+    # Try fitting with each combination of slopes and IC50s as starting points
+    init_fits = lapply(slopes, function(xx) {
+        lapply(ic50s, function(yy) {
+            # IC50s tend to be between 1 and 100 uM
+            try({ nlsLM( Viability ~ 1/(1+exp(-(log10(Concentration_value) - ic50)*slope)), start=list(slope=xx, ic50=yy), data=fit_data, upper=c(slope=-0.00001, ic50=10), lower=c(slope=-100, ic50=-15), control=nls.lm.control(epsfcn=1e-5)) }, silent=TRUE)
+        })
+    }) %>% flatten
+    # Remove fits that failed
+    fits = list()
+    for (ff in init_fits) {
+        if (length(ff) > 1) {
+            fits[[length(fits)+1]] = ff
+        }
+    }
     if (length(fits) > 0) {
         fits = lapply(fits, function(ff) { list(coef=coef(ff), residual=sum(resid(ff)^2), model=ff) })
         bfid = order(sapply(fits, function(ff) { ff$residual }))[1]
