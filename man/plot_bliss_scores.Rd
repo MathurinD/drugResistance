@@ -4,7 +4,7 @@
 \alias{plot_bliss_scores}
 \title{Plot starHeatmaps for a group of synergy data}
 \usage{
-plot_bliss_scores(pdata)
+plot_bliss_scores(pdata, restrict = TRUE, col_drug = "", control = "DMSO")
 }
 \arguments{
 \item{pdata}{Processed data}

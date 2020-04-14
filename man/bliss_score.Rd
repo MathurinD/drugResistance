@@ -4,7 +4,7 @@
 \alias{bliss_score}
 \title{Helper to get bliss score matrix}
 \usage{
-bliss_score(pdata, restrict = TRUE)
+bliss_score(pdata, restrict = TRUE, col_drug = "", control = "DMSO")
 }
 \description{
 Helper to get a nice bliss score matrix from processed data

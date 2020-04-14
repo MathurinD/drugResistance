@@ -5,9 +5,11 @@
 #' Get a synergy table that can be used by the function ReshapeData synergyfinder.
 #' @param pdata A tibble as outputed from process_growth_curves. Must have columns 'Treatment' with format drugRow_rowConcentration+drugCol_colConcentation and 'Viability' 
 #' @param scale Whether the data should be strictly restricted between 0 and 100. Apply a cutoff, not a scaling.
+#' @param col_drug A drug name that must be the column drug. Otherwise choosen as the first drug to appear.
+#' @param control The name of the control.
 #' @return A tibble with column names as required by ReshapeData
 #' @export
-get_synergy_table <- function(pdata, restrict=FALSE) {
+get_synergy_table <- function(pdata, restrict=FALSE, col_drug="", control="DMSO") {
     #pigfrazd %>% filter(!grepl("1|8", Well)) %>%
     pdata = pdata %>%
         mutate(Viability=case_when(is.infinite(Viability)&Viability<0~0, is.infinite(Viability)&Viability>0~1, TRUE~Viability)) %>% # Remove infinite
@@ -21,24 +23,29 @@ get_synergy_table <- function(pdata, restrict=FALSE) {
     treatments = str_split_fixed(pdata$Treatment, "\\+", 2) %>% as_tibble %>% rename(Drug1=V1, Drug2=V2) %>% separate(Drug1, c("DrugRow", "ConcRow"), "_") %>% separate(Drug2, c("DrugCol", "ConcCol"), "_")
     drugs_col = treatments %>% distinct(DrugCol) %>% pull(DrugCol)
     drugs_row = treatments %>% distinct(DrugRow) %>% pull(DrugRow)
-    col_drug = find_first_drug(drugs_col, "DMSO")
-    row_drug = find_first_drug(drugs_row, c(col_drug, "DMSO"))
+    if (col_drug == "") {
+        col_drug = find_first_drug(drugs_row, control)
+    }
     treatments %>% apply(1, function(x){
-                            if(x["DrugRow"] == "DMSO") {
-                                 x[c("DrugRow", "ConcRow")]=c("", NA)
-                            } else if(x["DrugRow"] %in% c(col_drug)) {
-                                x[c("DrugCol", "ConcCol")]=x[c("DrugRow", "ConcRow")]
+                            if (x["DrugRow"] == col_drug) { # Swap
+                                tmp = x[c("DrugRow", "ConcRow")]
+                                x[c("DrugRow", "ConcRow")] = x[c("DrugCol", "ConcCol")]
+                                x[c("DrugCol", "ConcCol")] = tmp
+                            }
+                            if (x["DrugRow"] == control) {
                                 x[c("DrugRow", "ConcRow")]=c("", NA)
                             }
-                            return(x) }) %>% t %>% as.tibble %>% mutate(DrugRow=row_drug, DrugCol=col_drug) %>%
+                            return(x) }) %>% t %>% as.tibble %>%
          mutate(ConcRow=case_when(is.na(ConcRow)~"0nM", TRUE~ConcRow), ConcCol=case_when(is.na(ConcCol)~"0nM", TRUE~ConcCol)) %>%
          mutate(ConcRow = concentration_values(ConcRow)*1e9, ConcRowUnit = "nM", ConcCol = concentration_values(ConcCol)*1e9, ConcColUnit = "nM") -> treatments
+     row_drug = treatments %>% pull(DrugRow) %>% find_first_drug(c(col_drug, control))
+     treatments = treatments %>% mutate(DrugRow = row_drug, DrugCol=col_drug)
 
     synergy_data = pdata %>%
         bind_cols(treatments) %>% # Add the treatment columns
         group_by(DrugCol, ConcCol, DrugRow, ConcRow) %>%
-        summarize(Response=mean(Response)) %>% mutate(BlockId=1, ConcColUnit="nM", ConcRowUnit="nM") %>% # Make sure each concentration combination corresponds to 1 data point (not done earlier because controls can have different DMSO concentration thus different names but all correspond to the same drug combination of 0)
-        mutate(BlockID=1) %>%
+        summarize(Response=mean(Response)) %>% mutate(BlockId=1, ConcColUnit="nM", ConcRowUnit="nM") %>% # Make sure each concentration combination corresponds to 1 data point (not done earlier because controls can have different concentrations thus different names but all correspond to the same drug combination of 0)
+        mutate(BlockID=1) %>% # For synergyFinder
         ungroup() %>%
         select(BlockID, DrugCol, ConcCol, ConcColUnit, DrugRow, ConcRow, ConcRowUnit, Response) # Sanity check that all column expected by synergyfinder are present
 
@@ -59,8 +66,8 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
 #' Helper to get a nice bliss score matrix from processed data
 #' @pdata Proccessed incucyte data as outputed by process_growth_curves
 #' @export
-bliss_score <- function(pdata, restrict=TRUE) {
-    pdata %>% get_synergy_table(restrict=restrict) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% ReshapeData -> drm
+bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
+    pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% ReshapeData -> drm
     drm %>% .$dose.response.mats %>% .[[1]] -> shaped_data
     Bliss(shaped_data) -> synergy # From synergyFinder
     Bliss(shaped_data) -> drm$synergy # From synergyFinder
@@ -74,13 +81,13 @@ bliss_score <- function(pdata, restrict=TRUE) {
 #' Plot starHeatmaps for a group of synergy data
 #' @param pdata Processed data
 #' @export
-plot_bliss_scores <- function(pdata) {
+plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
     if (class(pdata) != "list") {
         pdata = list("all"=pdata)
     }
     hl = c()
     for (pp in names(pdata)) {
-        bss = bliss_score(pdata[[pp]])
+        bss = bliss_score(pdata[[pp]], restrict=restrict, col_drug=col_drug, control=control)
         hl = hl + starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=bss$drug.pairs$drug.col, row_title=bss$drug.pairs$drug.row)
     }
     draw(hl, padding = unit(c(2, 2, 10, 2), "mm"))

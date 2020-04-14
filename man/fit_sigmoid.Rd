@@ -4,10 +4,14 @@
 \alias{fit_sigmoid}
 \title{Fit a sigmoid}
 \usage{
-fit_sigmoid(fit_data)
+fit_sigmoid(fit_data, slopes = c(-0.01, -0.03, -0.1), ic50s = c(-4, -5, -6))
 }
 \arguments{
 \item{fit_data}{A tibble or data.frame with columns 'Concentration_value' and 'Viability' corresponding defining the points to fit}
+
+\item{slopes}{Initial values to start the fit of slopes}
+
+\item{ic50s}{Initial values to start the fit of ic50s}
 }
 \value{
 A vector of size 3 corresponding to parameters b and c, and the residual of the fit
