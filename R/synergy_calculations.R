@@ -88,7 +88,9 @@ plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO")
     hl = c()
     for (pp in names(pdata)) {
         bss = bliss_score(pdata[[pp]], restrict=restrict, col_drug=col_drug, control=control)
-        hl = hl + starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=bss$drug.pairs$drug.col, row_title=bss$drug.pairs$drug.row)
+        if (!is.null(bss$drug.pairs$drug.col)) { drug_col = bss$drug.pairs$drug.col } else { drug_col = bss$drug.pairs$drug_col } # To work with both versions of SynergyFinder
+        if (!is.null(bss$drug.pairs$drug.row)) { drug_row = bss$drug.pairs$drug.row } else { drug_row = bss$drug.pairs$drug_row } # To work with both versions of SynergyFinder
+        hl = hl + starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=drug_col, row_title=drug_row)
     }
     draw(hl, padding = unit(c(2, 2, 10, 2), "mm"))
     lapply(names(pdata), function(nn) { decorate_heatmap_body(nn, { grid.text(nn, y = unit(1, "npc") + unit(2, "mm"), just = "bottom") }) }) -> null
