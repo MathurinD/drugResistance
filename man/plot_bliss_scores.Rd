@@ -4,10 +4,18 @@
 \alias{plot_bliss_scores}
 \title{Plot starHeatmaps for a group of synergy data}
 \usage{
-plot_bliss_scores(pdata, restrict = TRUE, col_drug = "", control = "DMSO")
+plot_bliss_scores(pdata, restrict = TRUE, col_drug = "", control = "DMSO", ...)
 }
 \arguments{
 \item{pdata}{Processed data}
+
+\item{restrict}{Whether the data should be restricted between 0 and 100.}
+
+\item{col_drug}{Force a drug name to be in the columns.}
+
+\item{control}{Name of the control condition.}
+
+\item{...}{Extra arguments to pass to starHeatmap2}
 }
 \description{
 Plot starHeatmaps for a group of synergy data

@@ -6,6 +6,11 @@
 \usage{
 bliss_score(pdata, restrict = TRUE, col_drug = "", control = "DMSO")
 }
+\arguments{
+\item{pdata}{Proccessed incucyte data as outputed by process_growth_curves}
+
+\item{restrict}{Whether the data should be restricted between 0 and 100}
+}
 \description{
 Helper to get a nice bliss score matrix from processed data
 }

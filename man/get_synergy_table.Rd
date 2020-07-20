@@ -11,11 +11,11 @@ get_synergy_table(pdata, restrict = FALSE, col_drug = "", control = "DMSO")
 \arguments{
 \item{pdata}{A tibble as outputed from process_growth_curves. Must have columns 'Treatment' with format drugRow_rowConcentration+drugCol_colConcentation and 'Viability'}
 
+\item{restrict}{Whether the data should be strictly restricted between 0 and 100. Apply a cutoff, not a scaling.}
+
 \item{col_drug}{A drug name that must be the column drug. Otherwise choosen as the first drug to appear.}
 
 \item{control}{The name of the control.}
-
-\item{scale}{Whether the data should be strictly restricted between 0 and 100. Apply a cutoff, not a scaling.}
 }
 \value{
 A tibble with column names as required by ReshapeData

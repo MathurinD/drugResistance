@@ -4,7 +4,7 @@
 #'
 #' Get a synergy table that can be used by the function ReshapeData synergyfinder.
 #' @param pdata A tibble as outputed from process_growth_curves. Must have columns 'Treatment' with format drugRow_rowConcentration+drugCol_colConcentation and 'Viability' 
-#' @param scale Whether the data should be strictly restricted between 0 and 100. Apply a cutoff, not a scaling.
+#' @param restrict Whether the data should be strictly restricted between 0 and 100. Apply a cutoff, not a scaling.
 #' @param col_drug A drug name that must be the column drug. Otherwise choosen as the first drug to appear.
 #' @param control The name of the control.
 #' @return A tibble with column names as required by ReshapeData
@@ -64,7 +64,8 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
 #' Helper to get bliss score matrix
 #'
 #' Helper to get a nice bliss score matrix from processed data
-#' @pdata Proccessed incucyte data as outputed by process_growth_curves
+#' @param pdata Proccessed incucyte data as outputed by process_growth_curves
+#' @param restrict Whether the data should be restricted between 0 and 100
 #' @export
 bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
     pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% ReshapeData -> drm
@@ -80,19 +81,26 @@ bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
 
 #' Plot starHeatmaps for a group of synergy data
 #' @param pdata Processed data
+#' @param restrict Whether the data should be restricted between 0 and 100.
+#' @param col_drug Force a drug name to be in the columns.
+#' @param control Name of the control condition.
+#' @param ... Extra arguments to pass to starHeatmap2
 #' @export
-plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
+plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO", ...) {
     if (class(pdata) != "list") {
         pdata = list("all"=pdata)
     }
     hl = c()
+    annotation = c()
     for (pp in names(pdata)) {
         bss = bliss_score(pdata[[pp]], restrict=restrict, col_drug=col_drug, control=control)
         if (!is.null(bss$drug.pairs$drug.col)) { drug_col = bss$drug.pairs$drug.col } else { drug_col = bss$drug.pairs$drug_col } # To work with both versions of SynergyFinder
         if (!is.null(bss$drug.pairs$drug.row)) { drug_row = bss$drug.pairs$drug.row } else { drug_row = bss$drug.pairs$drug_row } # To work with both versions of SynergyFinder
-        hl = hl + starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=drug_col, row_title=drug_row)
+        bliss_heatmap = starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, ...)
+        hl = hl + bliss_heatmap$object
+        annotation = bliss_heatmap$annotation_legend_list
     }
-    draw(hl, padding = unit(c(2, 2, 10, 2), "mm"))
+    draw(hl, padding = unit(c(2, 2, 10, 2), "mm"), annotation_legend_list=annotation)
     lapply(names(pdata), function(nn) { decorate_heatmap_body(nn, { grid.text(nn, y = unit(1, "npc") + unit(2, "mm"), just = "bottom") }) }) -> null
 }
 
@@ -102,20 +110,40 @@ plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO")
 #' @param hm_values Values for the colors of the heatmap tiles
 #' @param data Values for the text (or number of stars) of the heatmap tiles
 #' @param encoding One of c('size', 'count', 'multi_count') for whether the value in data should be encoded by the size of one star or a number of stars on one or multiple lines
+#' @param return_list If FALSE the heatmap is plotted with a legend, if TRUE returns a list with fields 'object' for the Heatmap object and 'annotation_legend_list' for the annotation corresponding to the encoding.
 #' @export
-starHeatmap2 <- function(hm_values, data, encoding="size", ...) {
+#' @rdname starHeatmap
+starHeatmap2 <- function(hm_values, data, encoding="size", return_list=FALSE, ...) {
     data = data %>% .[nrow(.):-1:1,,drop=FALSE]
     if (encoding == 'size') {
-        #draw(
-             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text("*", x, y-unit(0.2, "lines"), gp=gpar(fontsize=10*floor(data[i,j]/10))) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
-#, annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch="*", legend_gp=gpar(fontsize=10*1:5), type="points", background="white", grid_height=unit(2, "lines"))) )
+        out = list(
+            object=hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>%
+                Heatmap(cell_fun=function(j, i, x, y, width, height, fill) {
+                    if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text("*", x, y-unit(0.2, "lines"), gp=gpar(fontsize=10*floor(data[i,j]/10))) }
+                }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
+            annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch="*", legend_gp=gpar(fontsize=10*1:5), type="points", background="white", grid_height=unit(2, "lines")))
+        )
     } else if (encoding == 'multi_count') {
-        hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(paste0(rep("*", floor(data[i,j]/10)), collapse=""), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
+        out = list(
+            object = hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>%
+                Heatmap(cell_fun=function(j, i, x, y, width, height, fill) {
+                    if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(paste0(rep("*", floor(data[i,j]/10)), collapse=""), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) }
+                }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
+                annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch=1:5 %>% sapply(function(nn){paste0(rep("*", nn), collapse="")}), type="points"))
+        )
     } else if (encoding == 'count') {
-        draw(
-             hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(gsub("(.{3})", "\\1\n", paste0(rep("*", floor(data[i,j]/10)), collapse="")), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
-             annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch=1:5 %>% sapply(function(nn){paste0(rep("*", nn), collapse="")}), type="points"))
-             )
+        out = list(
+            object=hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>%
+                Heatmap(cell_fun=function(j, i, x, y, width, height, fill) {
+                    if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(gsub("(.{3})", "\\1\n", paste0(rep("*", floor(data[i,j]/10)), collapse="")), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) }
+                }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
+                annotation_legend_list = list(Legend(title="Bliss score", at=10*1:5, labels=10*1:5, pch=1:5 %>% sapply(function(nn){paste0(rep("*", nn), collapse="")}), type="points"))
+            )
+    }
+    if (return_list) {
+        return(out)
+    } else {
+        return(do.call(draw, out))
     }
 }
 
@@ -123,6 +151,7 @@ starHeatmap2 <- function(hm_values, data, encoding="size", ...) {
 #'
 #' Helper for starHeatmap2 with hm_values = data
 #' @export
+#' @rdname starHeatmap
 starHeatmap <- function(data, ...) {
     starHeatmap2(data, data, ...)
 }
@@ -132,6 +161,7 @@ starHeatmap <- function(data, ...) {
 #' @param hm_values Values for the heatmap colors
 #' @param data Values for the heatmap text
 #' @export
+#' @rdname starHeatmap
 valueHeatmap2 <- function(hm_values, data, ...) {
     data = data %>% .[nrow(.):-1:1,,drop=FALSE]
     hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>% Heatmap(cell_fun=function(j, i, x, y, width, height, fill) { if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(signif(data[i,j], 2), x, y, gp=gpar(fontsize=10)) } }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...)
