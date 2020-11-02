@@ -86,11 +86,11 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         t_control = pcontrol %>% filter(Analysis_Job %in% pexp$Analysis_Job, Treatment %in% pexp$Ref_T)
         t_control = t_control %>% mutate( Concentration_value = apply(t_control, 1, function(XX){ median(pexp %>% filter(Ref_T == XX["Treatment"]) %>% .$Concentration_value) }) )
         # Equidistant points in log space
-        crange=log(range(t_data$Concentration_value))
-        message(crange)
-        if (is.na(crange[1])) {crange[1]=-17}
-        if (is.na(crange[2])) {crange[2]=-9}
-        xx = exp(seq(crange[1], crange[2], length.out=100))
+        crange=log10(range(t_data$Concentration_value, na.rm=TRUE))
+        message(paste0(crange, collapse=","))
+        if (is.na(crange[1])) {crange[1]=-7}
+        if (is.na(crange[2])) {crange[2]=-4}
+        xx = 10^(seq(crange[1], crange[2], length.out=100))
         dumx=tibble(xx=xx)
 
         fits_treatment[[tt]] = fit_sigmoid(t_data)

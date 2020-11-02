@@ -36,6 +36,7 @@ sigmoid <- function(params, xx) {
 #' @export
 fit_sigmoid <- function(fit_data, slopes=c(-0.01, -0.03, -0.1), ic50s=c(-4, -5, -6)) {
     fit_data = fit_data %>% mutate(Viability = sapply(Viability, max, -0.1, na.rm=TRUE)) # Threshold negative viability for the fit as it seems to ruin it
+    fit_data$Concentration_value %>% range(na.rm=TRUE) %>% log10 -> crange
     # Try fitting with each combination of slopes and IC50s as starting points
     init_fits = lapply(slopes, function(xx) {
         lapply(ic50s, function(yy) {
