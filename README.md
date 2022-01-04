@@ -6,7 +6,7 @@ Load the data using [incucyter](https://github.com/MathurinD/incucyter) and chec
 ```
 library(incucyter)
 library(drugResistance)
-confluency = read_incu(system.file('extdata', 'data.csv', package='drugResistance'), system.file('extdata', 'annotation.csv', package='drugResistance'))
+confluency = read_incu(system.file('extdata', 'data.txt', package='drugResistance'), system.file('extdata', 'annotation.csv', package='drugResistance'))
 plot_microplate(confluency)
 ```
 
