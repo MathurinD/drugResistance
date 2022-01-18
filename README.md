@@ -11,9 +11,11 @@ plot_microplate(confluency)
 ```
 
 Compute growth rates and fit dose-response curves.
+Growth rates are normalized to the average growth of the control wells (specified for each well in column Ref_T)
 
 ```
 growth = process_growth_curve(confluency)
+plot_growth_rates(growth) # Heatmap of the computed average growth rate in each well
 dose_response = fit_drug_sensitivity(growth)
 ```
 

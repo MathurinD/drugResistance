@@ -10,13 +10,14 @@
 #' Extract growth rate, normalise and averages growth curves from the experiment
 #' @param experiment Dataset as return by read_incu from incucyter
 #' @param keep_controls Whether the controls should be present in the output. Control values are DMSO, medium and no_cells.
+#' @param space A function to modify the fitting space (log (default), identity, etc)
 #' @return A tibble with new columns Inhibitor, Concentration and Viability
 #' @export
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
-process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75) {
+process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75, space=log) {
     well_agg = experiment %>% filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
         filter(Value < max_confluency) %>%
-        mutate(Value=log(Value)) %>% # Linear in log space
+        mutate(Value=space(Value)) %>% # Linear in log space
         group_by(Analysis_Job, Well, img, Description, Treatment, Ref_T, Reference, Metric) %>%
         group_map(function(.x, .y) { .y %>% mutate(Value=lm(Value~1+Elapsed, .x)$coefficients["Elapsed"], Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>%
        # distinct(Analysis_Job, Well, img) %>%
