@@ -59,3 +59,29 @@ fit_sigmoid <- function(fit_data, slopes=c(-0.01, -0.03, -0.1), ic50s=c(-4, -5, 
         return(list(coef=c(-0.01, 0), residual=NaN, conf=matrix(c(-10, -10, 10, 10), nrow=2), model=NULL))
     }
 }
+
+#' Find the concentration for a given inhibition
+#'
+#' @param nls_model Model fitted by fit_drug_sensitivity
+#' @param target_effect Percent viability that should be reached
+#' @param explore Starting range to look for the concentration, in log10
+#' @param precision How close to the target effect can the algorithm stop
+#' @value log10(target_concentration)
+#' @description Find the target concentration by predicting the effect on a range of concentration and shrinking from there
+#' @rdname findIC
+find_effective_concentration <- function(nls_model, target_effect=0.5, explore=c(-9:1), precision=0.01) {
+    best=10
+    explore = sort(explore)
+    while(best-target_effect > precision) {
+        prediction = predict(plots$fits$Venetoclax$model, list(Concentration_value=10^explore))
+        if (prediction[1] < target_effect) {stop('First value of the explore range is already more efficient than the target effect')}
+        if (prediction[length(prediction)] > target_effect) {stop('Last value of the explore range does not reach the target effect')}
+        ii = 2
+        while (prediction[ii] > target_effect) {ii = ii+1}
+        best = prediction[ii-1]
+        explore = seq(explore[ii-1], explore[ii], length.out=10)
+    }
+    return(explore[1])
+}
+#' @rdname findIC
+findIC20 <- function(nls_model, explore=c(-9:1), precision=0.01) { find_effective_concentration(nls_model, target_effect=0.8, explore, precision)}
