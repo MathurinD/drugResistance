@@ -8,7 +8,7 @@
 #' @export
 concentration_values = function(concentrations) {
     # NOTE: does not manage non valid formats correctly
-    scaling = list("nM"=1e-9, "uM"=1e-6, "mM"=1e-3, "k"=1e3, "M"=1e6)
+    scaling = list("nM"=1e-9, "µM"=1e-6, "uM"=1e-6, "mM"=1e-3, "k"=1e3, "M"=1e6)
     numbers = gsub("[^0-9.]*", "", concentrations)
     modifiers = gsub("[0-9.]*", "", concentrations)
     return( as.numeric(numbers) * unlist(sapply(modifiers, function(xx){ if (xx %in% names(scaling)){scaling[[xx]]} else{1} })) )
