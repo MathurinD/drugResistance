@@ -74,7 +74,7 @@ process_single_growth_curve <- function(trace, max_confluency=75) {
 #' Fit sigmoid to drug sensitivities
 #'
 #' @export
-fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "cell")) {
+fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "cell"), verbose=FALSE) {
     pcontrol = pexp %>% filter(grepl( paste0(controls, collapse="|"), Treatment ))
     pexp = pexp %>% filter(!grepl( paste0(controls, collapse="|"), Treatment ))
 
@@ -88,7 +88,7 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
         t_control = t_control %>% mutate( Concentration_value = apply(t_control, 1, function(XX){ median(pexp %>% filter(Ref_T == XX["Treatment"]) %>% .$Concentration_value) }) )
         # Equidistant points in log space
         crange=log10(range(t_data$Concentration_value, na.rm=TRUE))
-        message(paste0(crange, collapse=","))
+        if (verbose){ message(paste0(crange, collapse=",")) }
         if (is.na(crange[1])) {crange[1]=-7}
         if (is.na(crange[2])) {crange[2]=-4}
         xx = 10^(seq(crange[1], crange[2], length.out=100))
@@ -123,10 +123,36 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
     return(list(fits=fits_treatment, plots=treatment_plots, controls=control_plot))
 }
 
+#' Plot the drug sensitivity with the fit
+#'
+#' @param fit_result Result of fit_drug_sensitivity
+#' @param drug_name Drug for which the plot should be made
+#' @export
+plot_ic50_fit <- function(fit_result, drug_name='') {
+    if (!(drug_name %in% names(fit_result$plots) | drug_name %in% names(fit_result$fits))) {
+        stop(paste('Drug', drug_name, 'does not exist in this dataset'))
+    }
+    log_breaks = 10^-seq(1:10)
+    log_breaks = c(log_breaks, 3*log_breaks)
+    crange=log10(range(fit_result$plots[[drug_name]]$data$Concentration_value, na.rm=TRUE))
+    if (is.na(crange[1])) {crange[1]=-7}
+    if (is.na(crange[2])) {crange[2]=-4}
+    xx = 10^(seq(crange[1], crange[2], length.out=100))
+    dumx=tibble(xx=xx)
+    result_plot = fit_result$plots[[drug_name]]$data %>% ggplot() + scale_x_log10(breaks=log_breaks) +
+                geom_point(aes( Concentration_value, Viability, col=substr(Well, 1, 1), shape=substr(Well, 2, 2) )) +
+                geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
+                #geom_point(aes(Concentration_value, Viability, color="controls", alpha=0.5), show.legend=FALSE, data=t_control) +
+                geom_line(aes(xx, sigmoid(fit_result$fits[[drug_name]]$coef, log10(xx))), data=dumx) +
+                coord_cartesian(ylim=c(-0.5, 1.5)) +
+                ggtitle(drug_name)
+    print(result_plot)
+}
+
 #' Compute the slope of the confluency in a window
 #'
-#' Compute the slope of the confluency in a window using the max-min approximation. Does the direct sum, considering the values are log-transformed
-#' @param experiment An experiment tibble as returned by process_growth_curve
+#' Compute the slope of the confluency in a window using the max-min approximation. Does the direct sum, considering the values are log-transformed.
+#' @param experiment Dataset as return by read_incu from incucyter
 #' @param winsize The half-size of the window in time units
 #' @param do_plot Boolean whether the slopes microplate should be plotted
 #' @return Invisibly the experiment tibble without the first 'winsize' data points and an extra column 'Slope'.
