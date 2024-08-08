@@ -35,7 +35,7 @@ process_growth_curve will add the following columns:
 - Viability: normalised data
 - Inhibitor: treatement wo/ conc
 - Concentration: concentration as a string (e.g 20nM)
-- Concentration_value: concentration in micromolar (e.g. 0.02)
+- Concentration_value: concentration in micromolar (e.g. 0.02, you can use the helper function `concentration_values` to convert from the Concentration column)
 
 Visualise the dose-response curves and export the fitted values.
 ```
