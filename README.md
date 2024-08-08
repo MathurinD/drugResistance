@@ -45,4 +45,7 @@ names(ic50s) = c('slope', 'ic50', 'residual')
 write.table(ic50s, system.file('exdata', 'ic50s.csv', package='drugResistance'))
 ```
 
-
+You can also compute and visualise synergy scores (note test data are not synergies, see [Dorel2021][https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009515] for example data and code)
+```
+growth %>% plot_bliss_scores(col_drug="drug1") # Uses the helper function starHeatmap2 which uses ComplexHeatmap to plot growth rate as tile fill color and synergy score as stars
+```
