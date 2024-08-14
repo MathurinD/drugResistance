@@ -10,14 +10,18 @@ confluency = read_incu(system.file('extdata', 'data.txt', package='drugResistanc
 plot_microplate(confluency)
 ```
 
-The confluency file from read_incu has the following columns that are used in the subsequent functions:
+The following columns are needed to compute a growth rate:
 + Analysis_job: name of the run/experiment
 + Well: The position of the well as a letter and a number (e.g D5)
 + Treatment: drug_concentration string separated by a "+" for combinations (eg. AZD6244_10nM+Panobinostat_1nM)
 + Ref_T: name of treatment used in the control well(s) (drug + conc, e,g DMSO_0.001)
-+ Feature: Confluence growth rate
-- Unit: of the feature (%/h)
-- Metric
++ Value: Confluence growth rate
++ Elapsed: Treatment time (unit is free but should be the same in all the column)
+
+The confluency file from read_incu also has the following columns that are not used in the subsequent functions:
+- Feature: Type of measurement (e.g. Confluency)
+- Unit: of the feature (e.g. %)
+- Metric: Type of mesurement
 - Reference: position of the control well(s)
 
 Compute growth rates and fit dose-response curves.

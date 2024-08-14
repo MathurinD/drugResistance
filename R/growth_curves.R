@@ -16,15 +16,11 @@
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75, space=log) {
     well_agg = experiment %>% filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
+        dplyr::select(Analysis_Job, Well, Treatment, Ref_T, Reference, Value)
         filter(Value < max_confluency) %>%
         mutate(Value=space(Value)) %>% # Linear in log space
-        group_by(Analysis_Job, Well, img, Description, Treatment, Ref_T, Reference, Metric) %>%
-        group_map(function(.x, .y) { .y %>% mutate(Value=lm(Value~1+Elapsed, .x)$coefficients["Elapsed"], Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>%
-       # distinct(Analysis_Job, Well, img) %>%
-       # apply(1, function(x){ experiment %>%
-       #                     filter(Analysis_Job==x["Analysis_Job"], Well==x["Well"], img==x["img"]) %>%
-       #                     process_single_growth_curve(max_confluency)
-       #                 }) %>%
+        group_by(Analysis_Job, Well, Treatment, Ref_T, Reference) %>%
+        group_map(function(.x, .y) { .y %>% mutate(Value=lm(Value~1+Elapsed, .x)$coefficients["Elapsed"], Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>%
         bind_rows %>%
         group_by(Analysis_Job, Treatment, Reference, Well, Feature, Unit, Metric, Ref_T) %>%
         summarise(Mean_well=mean(Value), Sd_well=sd(Value, na.rm=T)) %>% 
@@ -68,7 +64,7 @@ process_single_growth_curve <- function(trace, max_confluency=75) {
         while (mean(trace$Value[(stop-9):stop]) < max_confluency & stop < length(trace$Value)) { stop = stop + 1 }
         growth_rate = log(trace$Value[stop]/trace$Value[1], 2) / (trace$Elapsed[stop]-trace$Elapsed[1])
     }
-    return( trace[1,] %>% mutate(Value=growth_rate, Elapsed=NULL, Date_Time=NULL, Feature="Confluence growth rate", Unit="%/h", Description=paste0(Description, " confluence growth rate"), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) )
+    return( trace[1,] %>% mutate(Value=growth_rate, Elapsed=NULL, Date_Time=NULL, Feature="Growth rate", Unit="/h", Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) )
 }
 
 #' Fit sigmoid to drug sensitivities
