@@ -20,7 +20,7 @@ get_synergy_table <- function(pdata, restrict=FALSE, col_drug="", control="DMSO"
     }
 
     # Convert the treatments to 2 columns with the names expected by synergyfinder
-    treatments = str_split_fixed(pdata$Treatment, "\\+", 2) %>% as_tibble %>% rename(Drug1=V1, Drug2=V2) %>% separate(Drug1, c("DrugRow", "ConcRow"), "_") %>% separate(Drug2, c("DrugCol", "ConcCol"), "_")
+    treatments = str_split_fixed(pdata$Treatment, "\\+|_and_", 2) %>% as_tibble %>% rename(Drug1=V1, Drug2=V2) %>% separate(Drug1, c("DrugRow", "ConcRow"), "_") %>% separate(Drug2, c("DrugCol", "ConcCol"), "_")
     drugs_col = treatments %>% distinct(DrugCol) %>% pull(DrugCol)
     drugs_row = treatments %>% distinct(DrugRow) %>% pull(DrugRow)
     if (col_drug == "") {
