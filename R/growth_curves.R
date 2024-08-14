@@ -16,13 +16,13 @@
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75, space=log) {
     well_agg = experiment %>% filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
-        dplyr::select(Analysis_Job, Well, Treatment, Ref_T, Reference, Value)
+        dplyr::select(Analysis_Job, Well, Treatment, Ref_T, Value, Elapsed) %>%
         filter(Value < max_confluency) %>%
         mutate(Value=space(Value)) %>% # Linear in log space
-        group_by(Analysis_Job, Well, Treatment, Ref_T, Reference) %>%
+        group_by(Analysis_Job, Well, Treatment, Ref_T) %>%
         group_map(function(.x, .y) { .y %>% mutate(Value=lm(Value~1+Elapsed, .x)$coefficients["Elapsed"], Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>%
         bind_rows %>%
-        group_by(Analysis_Job, Treatment, Reference, Well, Feature, Unit, Metric, Ref_T) %>%
+        group_by(Analysis_Job, Treatment, Well, Ref_T) %>%
         summarise(Mean_well=mean(Value), Sd_well=sd(Value, na.rm=T)) %>% 
         ungroup()
 
