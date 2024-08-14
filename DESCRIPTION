@@ -5,6 +5,7 @@ Version: 3.0
 Date: 2017-11-30
 Author: Who wrote it
 Maintainer: Mathurin Dorel <mathurin.dorel@charite.de>
-Description: More about what it does (maybe more than one line)
+Description: Helper package to process growth curves from drug sensitivity time series experiments, compute IC50 for single drugs and synergy for drug combinations.
 License: What license is it under?
 RoxygenNote: 7.1.1
+Depends: tidyverse
