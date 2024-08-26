@@ -1,11 +1,12 @@
 Package: drugResistance
 Type: Package
 Title: Process growth curves from drug sensitivity experiments
-Version: 3.0
+Version: 0,4
 Date: 2017-11-30
-Author: Who wrote it
-Maintainer: Mathurin Dorel <mathurin.dorel@charite.de>
+Encoding: UTF-8
+Author: Mathurin Dorel <mathurin.dorel+github@gmail.com>
+Maintainer: Mathurin Dorel <mathurin.dorel+github@gmail.com>
 Description: Helper package to process growth curves from drug sensitivity time series experiments, compute IC50 for single drugs and synergy for drug combinations.
 License: What license is it under?
-RoxygenNote: 7.1.1
+RoxygenNote: 7.3.1
 Depends: tidyverse
