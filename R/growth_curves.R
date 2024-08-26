@@ -7,7 +7,7 @@
 
 #' @title Process growth curves to viability values
 #'
-#' Extract growth rate, normalise and averages growth curves from the experiment
+#' @description Extract growth rate, normalise and averages growth curves from the experiment
 #' @param experiment Dataset as return by read_incu from incucyter
 #' @param keep_controls Whether the controls should be present in the output. Control values are DMSO, medium and no_cells.
 #' @param max_confluency The maximum value to consider valid. Used to remove data points when the growth tappers out because of contact inhibition. Adjust according to your data type.

@@ -66,7 +66,7 @@ fit_sigmoid <- function(fit_data, slopes=c(-0.01, -0.03, -0.1), ic50s=c(-4, -5, 
 #' @param target_effect Percent viability that should be reached
 #' @param explore Starting range to look for the concentration, in log10
 #' @param precision How close to the target effect can the algorithm stop
-#' @value log10(target_concentration)
+#' @return log10(target_concentration)
 #' @description Find the target concentration by predicting the effect on a range of concentration and shrinking from there
 #' @rdname findIC
 find_effective_concentration <- function(nls_model, target_effect=0.5, explore=c(-9:1), precision=0.01) {

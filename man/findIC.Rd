@@ -23,6 +23,9 @@ findIC20(nls_model, explore = c(-9:1), precision = 0.01)
 
 \item{precision}{How close to the target effect can the algorithm stop}
 }
+\value{
+log10(target_concentration)
+}
 \description{
 Find the target concentration by predicting the effect on a range of concentration and shrinking from there
 }

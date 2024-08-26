@@ -2,7 +2,7 @@
 
 #' @title Get a valid input for ReshapeData
 #'
-#' Get a synergy table that can be used by the function ReshapeData synergyfinder.
+#' @description Get a synergy table that can be used by the function ReshapeData synergyfinder.
 #' @param pdata A tibble as outputed from process_growth_curves. Must have columns 'Treatment' with format drugRow_rowConcentration+drugCol_colConcentation and 'Viability' 
 #' @param restrict Whether the data should be strictly restricted between 0 and 100. Apply a cutoff, not a scaling.
 #' @param col_drug A drug name that must be the column drug. Otherwise choosen as the first drug to appear.

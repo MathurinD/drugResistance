@@ -2,9 +2,7 @@
 % Please edit documentation in R/growth_curves.R
 \name{process_growth_curve}
 \alias{process_growth_curve}
-\title{Process growth curves to viability values
-
-Extract growth rate, normalise and averages growth curves from the experiment}
+\title{Process growth curves to viability values}
 \usage{
 process_growth_curve(
   experiment,
@@ -26,7 +24,5 @@ process_growth_curve(
 A tibble with new columns Inhibitor, Concentration and Viability
 }
 \description{
-Process growth curves to viability values
-
 Extract growth rate, normalise and averages growth curves from the experiment
 }

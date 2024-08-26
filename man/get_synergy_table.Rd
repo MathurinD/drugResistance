@@ -2,9 +2,7 @@
 % Please edit documentation in R/synergy_calculations.R
 \name{get_synergy_table}
 \alias{get_synergy_table}
-\title{Get a valid input for ReshapeData
-
-Get a synergy table that can be used by the function ReshapeData synergyfinder.}
+\title{Get a valid input for ReshapeData}
 \usage{
 get_synergy_table(pdata, restrict = FALSE, col_drug = "", control = "DMSO")
 }
@@ -21,7 +19,5 @@ get_synergy_table(pdata, restrict = FALSE, col_drug = "", control = "DMSO")
 A tibble with column names as required by ReshapeData
 }
 \description{
-Get a valid input for ReshapeData
-
 Get a synergy table that can be used by the function ReshapeData synergyfinder.
 }
