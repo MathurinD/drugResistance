@@ -7,7 +7,7 @@
 compute_window_slope(experiment, winsize = 20, do_plot = TRUE)
 }
 \arguments{
-\item{experiment}{An experiment tibble as returned by process_growth_curve}
+\item{experiment}{Dataset as return by read_incu from incucyter}
 
 \item{winsize}{The half-size of the window in time units}
 
@@ -17,5 +17,5 @@ compute_window_slope(experiment, winsize = 20, do_plot = TRUE)
 Invisibly the experiment tibble without the first 'winsize' data points and an extra column 'Slope'.
 }
 \description{
-Compute the slope of the confluency in a window using the max-min approximation. Does the direct sum, considering the values are log-transformed
+Compute the slope of the confluency in a window using the max-min approximation. Does the direct sum, considering the values are log-transformed.
 }
