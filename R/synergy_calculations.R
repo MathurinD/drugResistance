@@ -68,10 +68,10 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
 #' @param restrict Whether the data should be restricted between 0 and 100
 #' @export
 bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
-    pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% ReshapeData -> drm
-    drm %>% .$dose.response.mats %>% .[[1]] -> shaped_data
-    Bliss(shaped_data) -> synergy # From synergyFinder
-    Bliss(shaped_data) -> drm$synergy # From synergyFinder
+    pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% mutate(ConcUnit=ConcColUnit) %>% ReshapeData -> drm
+    drm %>% .$response_statistics %>% mutate(response=response_mean) -> shaped_data
+    drm$response_matrix = drm$response_statistics %>% dplyr::select(conc1, conc2, response_mean) %>% pivot_wider(values_from=response_mean, names_from=conc1) %>% column_to_rownames('conc2')
+    Bliss(shaped_data) %>% dplyr::select(conc1, conc2, Bliss_synergy) %>% pivot_wider(values_from=Bliss_synergy, names_from=conc1) %>% column_to_rownames('conc2') -> drm$synergy # From synergyFinder
    # azd = shaped_data[1,]/100
    # aew = shaped_data[,1]/100
    # matrix(rep(azd, length(aew)), nrow=length(aew), byrow=TRUE) + matrix(rep(aew, length(azd)), ncol=length(azd)) - t(t(aew)) %*% t(azd) -> ybliss
@@ -96,7 +96,7 @@ plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO",
         bss = bliss_score(pdata[[pp]], restrict=restrict, col_drug=col_drug, control=control)
         if (!is.null(bss$drug.pairs$drug.col)) { drug_col = bss$drug.pairs$drug.col } else { drug_col = bss$drug.pairs$drug_col } # To work with both versions of SynergyFinder
         if (!is.null(bss$drug.pairs$drug.row)) { drug_row = bss$drug.pairs$drug.row } else { drug_row = bss$drug.pairs$drug_row } # To work with both versions of SynergyFinder
-        bliss_heatmap = starHeatmap2(bss$dose.response.mats[[1]], bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, ...)
+        bliss_heatmap = starHeatmap2(bss$response_matrix, bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, ...)
         hl = hl + bliss_heatmap$object
         annotation = bliss_heatmap$annotation_legend_list
     }
