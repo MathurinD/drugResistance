@@ -15,6 +15,11 @@
 #' @export
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75, space=log) {
+    data_size = nrow(experiment)
+    throwout = experiment %>% filter(Value > max_confluency) %>% nrow
+    if (throwout/data_size > 0.5) {
+        warning("Throwing out >50% of the data because of the 'max_confluency' threshold. Make sure the threshold is compatible with your data type")
+    }
     well_agg = experiment %>% filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
         dplyr::select(Analysis_Job, Well, Treatment, Ref_T, Value, Elapsed) %>%
         filter(Value < max_confluency) %>%
