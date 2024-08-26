@@ -53,3 +53,11 @@ You can also compute and visualise synergy scores (note test data are not synerg
 ```
 growth %>% plot_bliss_scores(col_drug="drug1") # Uses the helper function starHeatmap2 which uses ComplexHeatmap to plot growth rate as tile fill color and synergy score as stars
 ```
+## Synergies
+
+If your drug screen has combinations, you can compute synergy:
+```
+synergy = get_synergy_table(growth, control='DMSO') # Computes multiple synergy statistics
+plot_bliss_scores(growth) # Plots only bliss synergy score
+write_csv('synergy.csv', get_synergy_table(growth)) # Can be used as input for https://synergyfinder.fimm.fi/ with minor renaming of the columns
+```
