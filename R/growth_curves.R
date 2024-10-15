@@ -186,5 +186,5 @@ compute_window_slope <- function(experiment, winsize=20, do_plot=TRUE) {
 #' @export
 plot_growth_rates <- function(pgc) {
      pgc %>% separate(Well, into=c("Y", "X"), sep=1) %>%
-         ggplot(aes(X, Y, fill=Viability, label=signif(Viability, 3))) + geom_tile() + geom_text() + facet_wrap(~Analysis_Job, switch="y")
+         ggplot(aes(as.factor(as.numeric(X)), reorder(Y,desc(Y)), fill=Viability, label=signif(Viability, 3))) + geom_tile() + geom_text() + facet_wrap(~Analysis_Job, switch="y")
 }
