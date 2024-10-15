@@ -8,5 +8,8 @@ Maintainer: Mathurin Dorel <mathurin.dorel+github@gmail.com>
 Description: Helper package to process growth curves from drug sensitivity time series experiments, compute IC50 for single drugs and synergy for drug combinations.
 License: What license is it under?
 RoxygenNote: 7.3.1
-Depends: tidyverse
+Depends:
+    tidyverse,
+    ComplexHeatmap,
+    synergyfinder
 Encoding: UTF-8
