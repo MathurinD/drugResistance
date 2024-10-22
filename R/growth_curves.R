@@ -17,13 +17,14 @@
 # Note: this function is still buggy with keep_controls==TRUE because of concentration_values function applied to no conformant values extracted as "Inhibitor_Concentration"
 process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=75, space=log) {
     data_size = nrow(experiment)
-    throwout = experiment %>% filter(Value > max_confluency) %>% nrow
+    throwout = experiment %>% dplyr::filter(Value > max_confluency) %>% nrow
     if (throwout/data_size > 0.5) {
-        warning("Throwing out >50% of the data because of the 'max_confluency' threshold. Make sure the threshold is compatible with your data type")
+        warning("Throwing out >50% of the data because of the 'max_confluency' threshold. Make sure the threshold is compatible with your data type.")
     }
-    well_agg = experiment %>% filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
+    if (length(experiment %>% ungroup %>% distinct(Elapsed)) < 2) { stop('Trying to fit a single time point in process_growth_curve, check your filters.') }
+    well_agg = experiment %>% dplyr::filter(Value > 0) %>% # Remove drops due to lack of focus or other technical artefacts
         dplyr::select(Analysis_Job, Well, Treatment, Ref_T, Value, Elapsed) %>%
-        filter(Value < max_confluency) %>%
+        dplyr::filter(Value < max_confluency) %>%
         mutate(Value=space(Value)) %>% # Linear in log space
         group_by(Analysis_Job, Well, Treatment, Ref_T) %>%
         group_map(function(.x, .y) { .y %>% mutate(Value=lm(Value~1+Elapsed, .x)$coefficients["Elapsed"], Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>%
@@ -36,7 +37,7 @@ process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=
     controls = well_agg %>%
             distinct(Ref_T) %>%
             as_vector %>% map(function(xx){ well_agg %>%
-                              filter(Treatment==xx) %>%
+                              dplyr::filter(Treatment==xx) %>%
                               group_by(Treatment) %>%
                               summarise(Mean=mean(Mean_well), Sd=sd(Mean_well))
                     }) %>%
@@ -46,12 +47,12 @@ process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=
         warning(paste("The controls ", paste(not_found, collapse=","), " have not been found, can't normalize all conditions. Check the Treatment name for the controls and that all relevant wells are present"))
     }
 
-    norm_values = controls %>% apply(1, function(xx) {well_agg %>% filter(Ref_T==xx["Treatment"]) %>% mutate(Viability=Mean_well/as.numeric(xx["Mean"]), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>% bind_rows() %>% mutate(Concentration_value=concentration_values(Concentration))
+    norm_values = controls %>% apply(1, function(xx) {well_agg %>% dplyr::filter(Ref_T==xx["Treatment"]) %>% mutate(Viability=Mean_well/as.numeric(xx["Mean"]), Inhibitor=gsub("_.*", "", Treatment), Concentration=gsub(".*_", "", Treatment)) }) %>% bind_rows() %>% mutate(Concentration_value=concentration_values(Concentration))
     
     if (keep_controls) {
         return(norm_values)
     } else {
-        norm_values  %>% filter(!grepl("DMSO|medium|cells", Treatment)) %>% return()
+        norm_values  %>% dplyr::filter(!grepl("DMSO|medium|cells", Treatment)) %>% return()
     }
 }
 
@@ -64,7 +65,7 @@ process_growth_curve <- function(experiment, keep_controls=TRUE, max_confluency=
 #' @export
 process_single_growth_curve <- function(trace, max_confluency=75) {
     if (max(trace$Value) < max_confluency) {
-        growth_rate = log(trace %>% filter(Elapsed==max(Elapsed)) %>% .$Value / trace %>% filter(Elapsed==min(Elapsed)) %>% .$Value) * log(2) / (max(trace$Elapsed)-min(trace$Elapsed))
+        growth_rate = log(trace %>% dplyr::filter(Elapsed==max(Elapsed)) %>% .$Value / trace %>% dplyr::filter(Elapsed==min(Elapsed)) %>% .$Value) * log(2) / (max(trace$Elapsed)-min(trace$Elapsed))
     } else {
         stop = 10 # Arbitrary value, should depend on the sampling interval (estimation of the time it takes the cell to gain 5% confluence
         while (mean(trace$Value[(stop-9):stop]) < max_confluency & stop < length(trace$Value)) { stop = stop + 1 }
@@ -77,17 +78,17 @@ process_single_growth_curve <- function(trace, max_confluency=75) {
 #'
 #' @export
 fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "cell"), verbose=FALSE) {
-    pcontrol = pexp %>% filter(grepl( paste0(controls, collapse="|"), Treatment ))
-    pexp = pexp %>% filter(!grepl( paste0(controls, collapse="|"), Treatment ))
+    pcontrol = pexp %>% dplyr::filter(grepl( paste0(controls, collapse="|"), Treatment ))
+    pexp = pexp %>% dplyr::filter(!grepl( paste0(controls, collapse="|"), Treatment ))
 
     treatment_plots = list()
     fits_treatment = list()
     log_breaks = 10^-seq(1:10)
     log_breaks = c(log_breaks, 3*log_breaks)
     for (tt in distinct(pexp, Inhibitor)$Inhibitor) {
-        t_data = pexp %>% filter(Inhibitor == tt)
-        t_control = pcontrol %>% filter(Analysis_Job %in% pexp$Analysis_Job, Treatment %in% pexp$Ref_T)
-        t_control = t_control %>% mutate( Concentration_value = apply(t_control, 1, function(XX){ median(pexp %>% filter(Ref_T == XX["Treatment"]) %>% .$Concentration_value) }) )
+        t_data = pexp %>% dplyr::filter(Inhibitor == tt)
+        t_control = pcontrol %>% dplyr::filter(Analysis_Job %in% pexp$Analysis_Job, Treatment %in% pexp$Ref_T)
+        t_control = t_control %>% mutate( Concentration_value = apply(t_control, 1, function(XX){ median(pexp %>% dplyr::filter(Ref_T == XX["Treatment"]) %>% .$Concentration_value) }) )
         # Equidistant points in log space
         crange=log10(range(t_data$Concentration_value, na.rm=TRUE))
         if (verbose){ message(paste0(crange, collapse=",")) }
@@ -111,16 +112,16 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "
                 geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
                 coord_cartesian(ylim=c(-0.5, 1.5)) +
                 ggtitle(tt)
-        if (nrow(t_data %>% filter(Viability < -0.5)) > 0) {
-            new_plot = new_plot + geom_text_repel(aes(Concentration_value, -0.5, label=signif(Viability, 2)), data=.%>%filter(Viability < -0.5))
+        if (nrow(t_data %>% dplyr::filter(Viability < -0.5)) > 0) {
+            new_plot = new_plot + geom_text_repel(aes(Concentration_value, -0.5, label=signif(Viability, 2)), data=.%>%dplyr::filter(Viability < -0.5))
         }
-        if (nrow(t_data %>% filter(Viability > 1.5)) > 0) {
-            new_plot = new_plot + geom_text_repel(aes(Concentration_value, 1.5, label=signif(Viability, 2)), data=.%>%filter(Viability > 1.5))
+        if (nrow(t_data %>% dplyr::filter(Viability > 1.5)) > 0) {
+            new_plot = new_plot + geom_text_repel(aes(Concentration_value, 1.5, label=signif(Viability, 2)), data=.%>%dplyr::filter(Viability > 1.5))
         }
         print(new_plot)
         treatment_plots[[tt]] = new_plot
     }
-    control_plot = pcontrol %>% filter(grepl(paste0("DMSO"), Treatment)) %>% mutate(Concentration_value=1/Concentration_value) %>% ggplot(aes(Concentration_value, Mean_well, color=Analysis_Job)) + geom_point() + scale_x_log10(breaks=log_breaks) + xlab("Carrier dilution") + ggtitle("Controls growth rates")
+    control_plot = pcontrol %>% dplyr::filter(grepl(paste0("DMSO"), Treatment)) %>% mutate(Concentration_value=1/Concentration_value) %>% ggplot(aes(Concentration_value, Mean_well, color=Analysis_Job)) + geom_point() + scale_x_log10(breaks=log_breaks) + xlab("Carrier dilution") + ggtitle("Controls growth rates")
     print(control_plot)
     return(list(fits=fits_treatment, plots=treatment_plots, controls=control_plot))
 }
@@ -161,15 +162,15 @@ plot_ic50_fit <- function(fit_result, drug_name='') {
 #' @export
 compute_window_slope <- function(experiment, winsize=20, do_plot=TRUE) {
     experiment %>%
-        filter(Elapsed>winsize) %>%
+        dplyr::filter(Elapsed>winsize) %>%
         group_by(Well, img, Elapsed) %>%
         mutate(Slope=NA) %>%
         group_map(function(.x, .y){
             time = as.numeric(.y$Elapsed)
-            experiment %>% filter(Elapsed > time-winsize & Elapsed < time+winsize) -> tmp
+            experiment %>% dplyr::filter(Elapsed > time-winsize & Elapsed < time+winsize) -> tmp
             max_time = max(tmp$Elapsed)
             min_time = min(tmp$Elapsed)
-            .x$Slope = ((experiment %>% filter(img==.y$img, Well==.y$Well, Elapsed==max_time) %>% pull(Value))-(experiment %>% filter(img==.y$img, Well==.y$Well, Elapsed==min_time) %>% pull(Value)))/(max_time-min_time)
+            .x$Slope = ((experiment %>% dplyr::filter(img==.y$img, Well==.y$Well, Elapsed==max_time) %>% pull(Value))-(experiment %>% dplyr::filter(img==.y$img, Well==.y$Well, Elapsed==min_time) %>% pull(Value)))/(max_time-min_time)
             return(bind_cols(.y, .x)) }) %>%
         bind_rows -> with_slope
     if (do_plot) {
