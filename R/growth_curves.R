@@ -189,3 +189,13 @@ plot_growth_rates <- function(pgc) {
      pgc %>% separate(Well, into=c("Y", "X"), sep=1) %>%
          ggplot(aes(as.factor(as.numeric(X)), reorder(Y,desc(Y)), fill=Viability, label=signif(Viability, 3))) + geom_tile() + geom_text() + facet_wrap(~Analysis_Job, switch="y")
 }
+
+#' Convert a well ID into X and Y coordinates
+#' 
+#' Convert a well ID into X and Y coordinates that are factors and probably ordered for facet_wrap
+#' @param input_tibble A tibble with column 'Well' matching the regex '[A-Z]\\d\\+' (one letter and a number)
+#' export
+microplate <- function(input_tibble) {
+    input_tibble %>% ungroup %>% separate(Well, into=c("WellX", "WellY"), sep=1, remove=FALSE) %>% mutate(WellY=as.factor(as.numeric(WellY)), WellX=reorder(WellX,desc(WellX)))
+}
+
