@@ -69,9 +69,14 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
 #' @export
 bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
     pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% mutate(ConcUnit=ConcColUnit) %>% ReshapeData -> drm
-    drm %>% .$response_statistics %>% mutate(response=response_mean) -> shaped_data
-    drm$response_matrix = drm$response_statistics %>% dplyr::select(conc1, conc2, response_mean) %>% pivot_wider(values_from=response_mean, names_from=conc1) %>% column_to_rownames('conc2')
-    Bliss(shaped_data) %>% dplyr::select(conc1, conc2, Bliss_synergy) %>% pivot_wider(values_from=Bliss_synergy, names_from=conc1) %>% column_to_rownames('conc2') -> drm$synergy # From synergyFinder
+    if (!is.null(drm$response_statistics)) { # Make it flexible to synergyfinder version
+        drm$response_statistics %>% mutate(response=response_mean) -> shaped_data
+        drm$response_matrix = drm$response_statistics %>% dplyr::select(conc1, conc2, response_mean) %>% pivot_wider(values_from=response_mean, names_from=conc1) %>% column_to_rownames('conc2')
+        Bliss(shaped_data) %>% dplyr::select(conc1, conc2, Bliss_synergy) %>% pivot_wider(values_from=Bliss_synergy, names_from=conc1) %>% column_to_rownames('conc2') -> drm$synergy # From synergyFinder
+    } else {
+        drm %>% .$dose.response.mats %>% .[[1]] -> shaped_data
+        Bliss(shaped_data) -> drm$synergy # From synergyFinder
+    }
    # azd = shaped_data[1,]/100
    # aew = shaped_data[,1]/100
    # matrix(rep(azd, length(aew)), nrow=length(aew), byrow=TRUE) + matrix(rep(aew, length(azd)), ncol=length(azd)) - t(t(aew)) %*% t(azd) -> ybliss
