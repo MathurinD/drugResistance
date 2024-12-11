@@ -68,7 +68,7 @@ find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
 #' @param restrict Whether the data should be restricted between 0 and 100
 #' @export
 bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
-    pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcCol=round(ConcCol), ConcRow=round(ConcRow)) %>% mutate(ConcUnit=ConcColUnit) %>% ReshapeData -> drm
+    pdata %>% get_synergy_table(restrict=restrict, col_drug=col_drug, control=control) %>% mutate(ConcUnit=ConcColUnit) %>% ReshapeData(noise=FALSE) -> drm
     if (!is.null(drm$response_statistics)) { # Make it flexible to synergyfinder version
         drm$response_statistics %>% mutate(response=response_mean) -> shaped_data
         drm$response_matrix = drm$response_statistics %>% dplyr::select(conc1, conc2, response_mean) %>% pivot_wider(values_from=response_mean, names_from=conc1) %>% column_to_rownames('conc2')
@@ -76,6 +76,7 @@ bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
     } else {
         drm %>% .$dose.response.mats %>% .[[1]] -> shaped_data
         Bliss(shaped_data) -> drm$synergy # From synergyFinder
+        drm$response_matrix = drm$dose.response.mats[[1]]
     }
    # azd = shaped_data[1,]/100
    # aew = shaped_data[,1]/100
