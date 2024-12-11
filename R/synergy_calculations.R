@@ -120,10 +120,10 @@ plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO",
 #' @export
 #' @rdname starHeatmap
 starHeatmap2 <- function(hm_values, data, encoding="size", return_list=FALSE, ...) {
-    data = data %>% .[nrow(.):-1:1,,drop=FALSE]
+    data = data %>% .[nrow(.):1,,drop=FALSE]
     if (encoding == 'size') {
         out = list(
-            object=hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>%
+            object=hm_values %>% .[nrow(.):1,,drop=FALSE] %>%
                 Heatmap(cell_fun=function(j, i, x, y, width, height, fill) {
                     if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text("*", x, y-unit(0.2, "lines"), gp=gpar(fontsize=10*floor(data[i,j]/10))) }
                 }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
@@ -131,7 +131,7 @@ starHeatmap2 <- function(hm_values, data, encoding="size", return_list=FALSE, ..
         )
     } else if (encoding == 'multi_count') {
         out = list(
-            object = hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>%
+            object = hm_values %>% .[nrow(.):1,,drop=FALSE] %>%
                 Heatmap(cell_fun=function(j, i, x, y, width, height, fill) {
                     if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(paste0(rep("*", floor(data[i,j]/10)), collapse=""), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) }
                 }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
@@ -139,7 +139,7 @@ starHeatmap2 <- function(hm_values, data, encoding="size", return_list=FALSE, ..
         )
     } else if (encoding == 'count') {
         out = list(
-            object=hm_values %>% .[nrow(.):-1:1,,drop=FALSE] %>%
+            object=hm_values %>% .[nrow(.):1,,drop=FALSE] %>%
                 Heatmap(cell_fun=function(j, i, x, y, width, height, fill) {
                     if(!is.na(data[i,j]) && data[i,j] > 10) { grid.text(gsub("(.{3})", "\\1\n", paste0(rep("*", floor(data[i,j]/10)), collapse="")), x, y-unit(0.2, "lines"), gp=gpar(fontsize=20)) }
                 }, cluster_rows=FALSE, cluster_columns=FALSE, row_names_side="left", col=circlize::colorRamp2(c(0, 100), c("white", "red")), border=TRUE, column_title_side="bottom", ...),
