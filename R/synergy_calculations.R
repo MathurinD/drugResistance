@@ -92,7 +92,7 @@ bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
 #' @param control Name of the control condition.
 #' @param ... Extra arguments to pass to starHeatmap2
 #' @export
-plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO", ...) {
+plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO", name="Drug effect", ...) {
     if (class(pdata)[1] != "list") {
         pdata = list("all"=pdata)
     }
@@ -102,7 +102,7 @@ plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO",
         bss = bliss_score(pdata[[pp]], restrict=restrict, col_drug=col_drug, control=control)
         if (suppressWarnings(!is.null(bss$drug.pairs$drug.col))) { drug_col = bss$drug.pairs$drug.col } else if (suppressWarnings(!is.null(bss$drug_pairs$drug1))) { drug_col = bss$drug_pairs$drug1} else { drug_col = bss$drug.pairs$drug_col } # To work with both versions of SynergyFinder
         if (suppressWarnings(!is.null(bss$drug.pairs$drug.row))) { drug_row = bss$drug.pairs$drug.row } else if (suppressWarnings(!is.null(bss$drug_pairs$drug2))) { drug_row = bss$drug_pairs$drug2} else { drug_row = bss$drug.pairs$drug_row } # To work with both versions of SynergyFinder
-        bliss_heatmap = starHeatmap2(bss$response_matrix, bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, ...)
+        bliss_heatmap = starHeatmap2(bss$response_matrix, bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, heatmap_legend_param = list(title = name), ...)
         hl = hl + bliss_heatmap$object
         annotation = bliss_heatmap$annotation_legend_list
     }
