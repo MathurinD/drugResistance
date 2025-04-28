@@ -33,13 +33,13 @@ get_synergy_table <- function(pdata, restrict=FALSE, col_drug="", control="DMSO"
                                 x[c("DrugCol", "ConcCol")] = tmp
                             }
                             if (x["DrugRow"] == control) {
-                                x[c("DrugRow", "ConcRow")]=c("", NA)
+                                x[c("DrugRow", "ConcRow")]=c(NA, NA)
                             }
                             return(x) }) %>% t %>% as.tibble %>%
          mutate(ConcRow=case_when(is.na(ConcRow)~"0nM", TRUE~ConcRow), ConcCol=case_when(is.na(ConcCol)~"0nM", TRUE~ConcCol)) %>%
          mutate(ConcRow = concentration_values(ConcRow)*1e9, ConcRowUnit = "nM", ConcCol = concentration_values(ConcCol)*1e9, ConcColUnit = "nM") -> treatments
      row_drug = treatments %>% pull(DrugRow) %>% find_first_drug(c(col_drug, control))
-     treatments = treatments %>% mutate(DrugRow = row_drug, DrugCol=col_drug)
+     treatments = treatments %>% mutate(DrugRow=row_drug, DrugCol=col_drug)
 
     synergy_data = pdata %>%
         bind_cols(treatments) %>% # Add the treatment columns
@@ -90,20 +90,20 @@ bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
 }
 
 #' Plot starHeatmaps for a group of synergy data
-#' @param pdata Processed data
-#' @param restrict Whether the data should be restricted between 0 and 100.
+#' @param pdata_list Processed data or named list thereof. Should contain columns Well, Treatment, Ref_T, Elapsed and Analysis_Job
+#' @param restrict Whether the data should be restricted between 0 and 100%.
 #' @param col_drug Force a drug name to be in the columns.
 #' @param control Name of the control condition.
 #' @param ... Extra arguments to pass to starHeatmap2
 #' @export
-plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO", name="Drug effect", ...) {
-    if (class(pdata)[1] != "list") {
-        pdata = list("all"=pdata)
+plot_bliss_scores <- function(pdata_list, restrict=TRUE, col_drug="", control="DMSO", name="Drug effect", ...) {
+    if (!is.list(pdata_list)[1]) {
+        pdata_list = list("all"=pdata_list)
     }
     hl = c()
     annotation = c()
-    for (pp in names(pdata)) {
-        bss = bliss_score(pdata[[pp]], restrict=restrict, col_drug=col_drug, control=control)
+    for (pp in names(pdata_list)) {
+        bss = bliss_score(pdata_list[[pp]], restrict=restrict, col_drug=col_drug, control=control)
         if (suppressWarnings(!is.null(bss$drug.pairs$drug.col))) { drug_col = bss$drug.pairs$drug.col } else if (suppressWarnings(!is.null(bss$drug_pairs$drug1))) { drug_col = bss$drug_pairs$drug1} else { drug_col = bss$drug.pairs$drug_col } # To work with both versions of SynergyFinder
         if (suppressWarnings(!is.null(bss$drug.pairs$drug.row))) { drug_row = bss$drug.pairs$drug.row } else if (suppressWarnings(!is.null(bss$drug_pairs$drug2))) { drug_row = bss$drug_pairs$drug2} else { drug_row = bss$drug.pairs$drug_row } # To work with both versions of SynergyFinder
         bliss_heatmap = starHeatmap2(bss$response_matrix, bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, heatmap_legend_param = list(title = name), ...)
@@ -111,7 +111,7 @@ plot_bliss_scores <- function(pdata, restrict=TRUE, col_drug="", control="DMSO",
         annotation = bliss_heatmap$annotation_legend_list
     }
     draw(hl, padding = unit(c(2, 2, 10, 2), "mm"), annotation_legend_list=annotation)
-    lapply(names(pdata), function(nn) { decorate_heatmap_body(nn, { grid.text(nn, y = unit(1, "npc") + unit(2, "mm"), just = "bottom") }) }) -> null
+    lapply(names(pdata_list), function(nn) { decorate_heatmap_body(nn, { grid.text(nn, y = unit(1, "npc") + unit(2, "mm"), just = "bottom") }) }) -> null
 }
 
 #' Heatmap with stars for extra data
