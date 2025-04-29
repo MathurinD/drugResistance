@@ -77,7 +77,7 @@ process_single_growth_curve <- function(trace, max_confluency=75) {
 #' Fit sigmoid to drug sensitivities
 #'
 #' @export
-fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "medium", "cell"), verbose=FALSE) {
+fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "CTRL", "medium", "cell"), verbose=FALSE) {
     pcontrol = pexp %>% dplyr::filter(grepl( paste0(controls, collapse="|"), Treatment ))
     pexp = pexp %>% dplyr::filter(!grepl( paste0(controls, collapse="|"), Treatment ))
 

@@ -4,14 +4,17 @@
 #'
 #' Convert from the readable "XX[pnum]M" format to a numeral M format
 #' @param concentrations A vector of readable concentrations
+#' @param base A value to rescale to (e.g 1e-6 means using micro units)
 #' @return A numeric vector corresponding to the converted values
 #' @export
-concentration_values = function(concentrations) {
+concentration_values = function(concentrations, base=1) {
     # NOTE: does not manage non valid formats correctly
     scaling = list("nM"=1e-9, "µM"=1e-6, "uM"=1e-6, "mM"=1e-3, "k"=1e3, "M"=1e6)
-    numbers = gsub("[^0-9.]*", "", concentrations)
-    modifiers = gsub("[0-9.]*", "", concentrations)
-    return( as.numeric(numbers) * unlist(sapply(modifiers, function(xx){ if (xx %in% names(scaling)){scaling[[xx]]} else{1} })) )
+    numbers = gsub("[^0-9.]*$", "", concentrations)
+    modifiers = gsub("^[0-9.]*", "", concentrations)
+    matches = modifiers %in% c(names(scaling),'')
+    if (!all(matches)) { message(paste0("Unknown scaling(s): ",paste0(modifiers[!matches],collapse=','), '. Returning raw number value.')) }
+    return( as.numeric(numbers)/base * unlist(sapply(modifiers, function(xx){ if (xx %in% names(scaling)){scaling[[xx]]} else{1} })) )
 }
 
 #' The sigmoid function

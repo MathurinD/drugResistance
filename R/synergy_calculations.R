@@ -97,7 +97,7 @@ bliss_score <- function(pdata, restrict=TRUE, col_drug="", control="DMSO") {
 #' @param ... Extra arguments to pass to starHeatmap2
 #' @export
 plot_bliss_scores <- function(pdata_list, restrict=TRUE, col_drug="", control="DMSO", name="Drug effect", ...) {
-    if (!is.list(pdata_list)[1]) {
+    if (!'list' %in% class(pdata_list)) {
         pdata_list = list("all"=pdata_list)
     }
     hl = c()
