@@ -32,8 +32,8 @@ get_synergy_table <- function(pdata, restrict=FALSE, col_drug="", control="DMSO"
                                 x[c("DrugRow", "ConcRow")] = x[c("DrugCol", "ConcCol")]
                                 x[c("DrugCol", "ConcCol")] = tmp
                             }
-                            if (x["DrugRow"] == control) {
-                                x[c("DrugRow", "ConcRow")]=c(NA, NA)
+                            if (x["DrugRow"] %in% control) {
+                                x[c("DrugRow", "ConcRow")]=c(NA, 0)
                             }
                             return(x) }) %>% t %>% as.tibble %>%
          mutate(ConcRow=case_when(is.na(ConcRow)~"0nM", TRUE~ConcRow), ConcCol=case_when(is.na(ConcCol)~"0nM", TRUE~ConcCol)) %>%
@@ -52,9 +52,9 @@ get_synergy_table <- function(pdata, restrict=FALSE, col_drug="", control="DMSO"
     return(synergy_data)
 }
 
-find_first_drug <- function(drugs_list, exclude=c("DMSO")) {
+find_first_drug <- function(drugs_list, exclude=c("DMSO","CTRL")) {
     for (cc in drugs_list) {
-        if (! cc %in% c("", exclude)) {
+        if (! cc %in% c("", exclude) & !is.na(cc)) {
             return(cc)
         }
     }
