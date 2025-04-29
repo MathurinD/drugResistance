@@ -77,7 +77,7 @@ process_single_growth_curve <- function(trace, max_confluency=75) {
 #' Fit sigmoid to drug sensitivities
 #'
 #' @export
-fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "CTRL", "medium", "cell"), verbose=FALSE) {
+fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "CTRL", "medium", "cell"), verbose=FALSE, color='WellX', shape='WellY') {
     pcontrol = pexp %>% dplyr::filter(grepl( paste0(controls, collapse="|"), Treatment ))
     pexp = pexp %>% dplyr::filter(!grepl( paste0(controls, collapse="|"), Treatment ))
 
@@ -105,8 +105,23 @@ fit_drug_sensitivity <- function(pexp, controls=c("DMSO", "control", "CTRL", "me
             t_data %>% mutate(Vmin=t_data$Viability, Vmax=t_data$Viability)
         })
         t_data = t_data %>% mutate(Vmin = sapply(Vmin, max, -1, na.rm=TRUE), Vmax = sapply(Vmax, min, 1.5, na.rm=TRUE)) # Prevent the confidence interval from blowing the limits of the y-axis
+        # Select the features to use for annotation
+        choose_feature_content <- function(feature='color', content_value) {
+            if (content_value == 'WellX') { t_data = t_data %>% mutate(content = substr(Well, 1, 1)) }
+            else if (content_value == 'WellY') { t_data = t_data %>% mutate(content = substr(Well, 2, 2)) }
+            else if (content_value %in% colnames(t_data)) { t_data = t_data %>% mutate(content = get(content_value)) }
+            else if (content_value == '') { t_data = t_data %>% mutate(content='') }
+            else { stop(paste0('Invalid ', feature, ' : ', content_value)) }
+
+            if (feature=='shape') { t_data = t_data %>% dplyr::rename(shape=content) }
+            else { t_data = t_data %>% dplyr::rename(color=content) }
+            return(t_data)
+        }
+        t_data = choose_feature_content('color', color)
+        t_data = choose_feature_content('shape', shape)
+        # Generate dose response curve plots
         new_plot = t_data %>% ggplot() + scale_x_log10(breaks=log_breaks) +
-                geom_point(aes( Concentration_value, Viability, col=substr(Well, 1, 1), shape=substr(Well, 2, 2) )) +
+                geom_point(aes( Concentration_value, Viability, col=color, shape=shape )) +
                 geom_ribbon(aes(Concentration_value, ymin=Vmin, ymax=Vmax), fill="grey", alpha=0.5) +
                 geom_point(aes(Concentration_value, Viability, color="controls", alpha=0.5), show.legend=FALSE, data=t_control) +
                 geom_line(aes(xx, sigmoid(fits_treatment[[tt]]$coef, log10(xx))), data=dumx) +
