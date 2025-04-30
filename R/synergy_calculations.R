@@ -120,6 +120,7 @@ match_matrices <- function(data_matrix, template_matrix) {
     template_matrix[] = NA
     if (!all(rownames(data_matrix) %in% rownames(template_matrix)) | !all(colnames(data_matrix) %in% colnames(template_matrix))) { print(data_matrix); print(template_matrix); stop("data_matrix not a subset of template in 'match_matrices'") }
     template_matrix[rownames(data_matrix), colnames(data_matrix)] = data_matrix
+    return(template_matrix)
 }
 
 #' Heatmap with stars for extra data

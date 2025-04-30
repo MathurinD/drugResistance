@@ -13,14 +13,13 @@ concentration_values = function(concentrations, base=1) {
     numbers = gsub("[^0-9.]*$", "", concentrations)
     modifiers = gsub("^[0-9.]*", "", concentrations)
     matches = modifiers %in% c(names(scaling),'')
+    matches[is.na(modifiers) | modifiers == ''] = TRUE
     if (!all(matches)) { message(paste0("Unknown scaling(s): ",paste0(modifiers[!matches],collapse=','), '. Returning raw number value.')) }
     result = as.numeric(numbers) * unlist(sapply(modifiers, function(xx){ if (xx %in% names(scaling)){scaling[[xx]]} else{1} })) / base
     # Rounding so that the same value expressed differently returns the same number (see unit test below):
     # concentration_values('1000nM')==concentration_values('1uM')
     # concentration_values(c('1000nM', NA, -1))
-    if (any(result < 1, na.rm=T)) { b1 = result<1&!is.na(result); result[b1] = round(result[b1], -round(log10(result[b1]))) }
-    if (any(result > 1, na.rm=T)) { a1 = result>1&!is.na(result); result[a1] = round(result[a1]) }
-    return(result)
+    return(signif(result,3)) # 3 significant digits correctst the float error and are enough for any practical experiment.
 }
 
 #' The sigmoid function
