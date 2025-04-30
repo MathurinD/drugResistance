@@ -100,18 +100,26 @@ plot_bliss_scores <- function(pdata_list, restrict=TRUE, col_drug="", control="D
     if (!'list' %in% class(pdata_list)) {
         pdata_list = list("all"=pdata_list)
     }
+    template_matrix = do.call(bind_rows, pdata_list) %>% bliss_score(restrict=restrict, col_drug=col_drug, control=control) %>% .$response_matrix  # Compute the maximum matrix size to scale all others
     hl = c()
     annotation = c()
     for (pp in names(pdata_list)) {
         bss = bliss_score(pdata_list[[pp]], restrict=restrict, col_drug=col_drug, control=control)
         if (suppressWarnings(!is.null(bss$drug.pairs$drug.col))) { drug_col = bss$drug.pairs$drug.col } else if (suppressWarnings(!is.null(bss$drug_pairs$drug1))) { drug_col = bss$drug_pairs$drug1} else { drug_col = bss$drug.pairs$drug_col } # To work with both versions of SynergyFinder
         if (suppressWarnings(!is.null(bss$drug.pairs$drug.row))) { drug_row = bss$drug.pairs$drug.row } else if (suppressWarnings(!is.null(bss$drug_pairs$drug2))) { drug_row = bss$drug_pairs$drug2} else { drug_row = bss$drug.pairs$drug_row } # To work with both versions of SynergyFinder
-        bliss_heatmap = starHeatmap2(bss$response_matrix, bss$synergy, name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, heatmap_legend_param = list(title = name), ...)
+        bliss_heatmap = starHeatmap2(match_matrices(bss$response_matrix,template_matrix), match_matrices(bss$synergy,template_matrix), name=pp, column_title=drug_col, row_title=drug_row, return_list=TRUE, heatmap_legend_param = list(title = name), ...)
         hl = hl + bliss_heatmap$object
         annotation = bliss_heatmap$annotation_legend_list
     }
     draw(hl, padding = unit(c(2, 2, 10, 2), "mm"), annotation_legend_list=annotation)
     lapply(names(pdata_list), function(nn) { decorate_heatmap_body(nn, { grid.text(nn, y = unit(1, "npc") + unit(2, "mm"), just = "bottom") }) }) -> null
+}
+
+# Match the data matrix to the dimension of the template matrix and fill the blanks with NAs
+match_matrices <- function(data_matrix, template_matrix) {
+    template_matrix[] = NA
+    if (!all(rownames(data_matrix) %in% rownames(template_matrix)) | !all(colnames(data_matrix) %in% colnames(template_matrix))) { print(data_matrix); print(template_matrix); stop("data_matrix not a subset of template in 'match_matrices'") }
+    template_matrix[rownames(data_matrix), colnames(data_matrix)] = data_matrix
 }
 
 #' Heatmap with stars for extra data
